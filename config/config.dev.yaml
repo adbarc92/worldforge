@@ -1,0 +1,47 @@
+# AetherCanon Builder Development Configuration
+
+llm:
+  provider: "claude"  # claude or ollama
+
+  claude:
+    model: "claude-3-5-sonnet-20241022"
+    max_tokens: 4096
+    temperature: 0.0
+
+  ollama:
+    base_url: "http://ollama:11434"
+    model: "mistral:7b-instruct"
+    temperature: 0.0
+
+database:
+  url: "sqlite:////data/worldforge.db"
+  chromadb_path: "/data/chromadb"
+
+embeddings:
+  model: "BAAI/bge-large-en-v1.5"
+  device: "cpu"
+
+application:
+  debug: true
+  log_level: "DEBUG"
+  environment: "development"
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+
+frontend:
+  host: "0.0.0.0"
+  port: 8501
+
+storage:
+  documents_path: "/data/documents"
+  exports_path: "/data/exports"
+
+chunking:
+  chunk_size: 500
+  chunk_overlap: 50
+
+thresholds:
+  similarity_threshold: 0.85
+  high_confidence_threshold: 0.90
