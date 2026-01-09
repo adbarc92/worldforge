@@ -31,7 +31,7 @@ class Document(Base):
     upload_date = Column(DateTime, default=datetime.utcnow, index=True)
     status = Column(String, default="active")  # active, archived
     git_commit_hash = Column(String)
-    metadata = Column(JSON, default=dict)
+    extra_metadata = Column("metadata", JSON, default=dict)  # Renamed to avoid SQLAlchemy conflict
     chunk_count = Column(Integer, default=0)
     entity_count = Column(Integer, default=0)
 
@@ -55,7 +55,7 @@ class Entity(Base):
     first_mentioned_doc_id = Column(String, ForeignKey("documents.id"))
     confidence_score = Column(Float, default=1.0)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    metadata = Column(JSON, default=dict)
+    extra_metadata = Column("metadata", JSON, default=dict)  # Renamed to avoid SQLAlchemy conflict
 
     # Relationships
     outgoing_relationships = relationship(
@@ -96,7 +96,7 @@ class Relationship(Base):
     evidence_excerpt = Column(Text)
     confidence_score = Column(Float, default=1.0)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    metadata = Column(JSON, default=dict)
+    extra_metadata = Column("metadata", JSON, default=dict)  # Renamed to avoid SQLAlchemy conflict
 
     # Relationships
     source_entity = relationship(
