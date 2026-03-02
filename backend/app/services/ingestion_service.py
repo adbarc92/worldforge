@@ -1,262 +1,112 @@
-"""
-Document ingestion pipeline service
-Handles document upload, parsing, chunking, and indexing
-"""
 import os
 import uuid
-from pathlib import Path
-from typing import List, Dict, Any
+import aiofiles
 from loguru import logger
-
-from llama_index.core import Document as LlamaDocument
 from llama_index.core.node_parser import SentenceSplitter
 
 from app.core.config import settings
-from app.services.ollama_service import OllamaService
+from app.services.llm import LLMService
 from app.services.qdrant_service import QdrantService
+from app.models.repositories import DocumentRepository
 
 
 class IngestionService:
-    """Service for document ingestion pipeline"""
-
-    def __init__(self):
-        """Initialize ingestion service"""
-        self.ollama_service = OllamaService()
-        self.qdrant_service = QdrantService()
+    def __init__(
+        self,
+        llm_service: LLMService,
+        qdrant_service: QdrantService,
+        document_repo: DocumentRepository,
+    ):
+        self.llm_service = llm_service
+        self.qdrant_service = qdrant_service
+        self.document_repo = document_repo
         self.chunk_size = settings.CHUNK_SIZE
         self.chunk_overlap = settings.CHUNK_OVERLAP
 
-    async def process_document(
-        self,
-        file_path: str,
-        document_id: str,
-        title: str,
-        user_id: str
-    ) -> Dict[str, Any]:
-        """
-        Process a document through the full ingestion pipeline
-
-        Steps:
-        1. Parse document (extract text)
-        2. Chunk text
-        3. Generate embeddings
-        4. Store in Qdrant
-        5. Return metadata
-
-        Args:
-            file_path: Path to document file
-            document_id: Unique document identifier
-            title: Document title
-            user_id: User who uploaded the document
-
-        Returns:
-            Dictionary with processing results
-        """
-        logger.info(f"Processing document: {title} (ID: {document_id})")
-
+    async def process_document(self, file_path: str, title: str):
+        doc = await self.document_repo.create(title=title, file_path=file_path)
         try:
-            # Step 1: Parse document
-            text = await self._parse_document(file_path)
-            logger.info(f"Extracted {len(text)} characters from document")
+            await self.document_repo.update_status(doc.id, "processing")
 
-            # Step 2: Chunk text
-            chunks = await self._chunk_text(text, document_id, title)
-            logger.info(f"Created {len(chunks)} chunks")
+            text = await self._extract_text(file_path)
+            if not text.strip():
+                raise ValueError("Document is empty after text extraction")
 
-            # Step 3: Generate embeddings
-            embeddings = await self._generate_embeddings(chunks)
-            logger.info(f"Generated {len(embeddings)} embeddings")
+            chunks = self._chunk_text(text, document_id=doc.id, title=title)
+            logger.info(f"Document '{title}' split into {len(chunks)} chunks")
 
-            # Step 4: Store in Qdrant
-            await self._store_in_qdrant(
-                document_id=document_id,
-                chunks=chunks,
-                embeddings=embeddings,
-                metadata={
-                    "title": title,
-                    "user_id": user_id,
-                    "canon_status": "canonical"
+            texts = [c["text"] for c in chunks]
+            embeddings = await self.llm_service.embed(texts)
+
+            ids = [c["chunk_id"] for c in chunks]
+            payloads = [
+                {
+                    "text": c["text"],
+                    "document_id": c["document_id"],
+                    "title": c["title"],
+                    "chunk_index": c["chunk_index"],
                 }
-            )
+                for c in chunks
+            ]
+            await self.qdrant_service.upsert(ids=ids, vectors=embeddings, payloads=payloads)
 
-            return {
-                "success": True,
-                "document_id": document_id,
-                "chunk_count": len(chunks),
-                "char_count": len(text)
-            }
-
-        except Exception as e:
-            logger.error(f"Error processing document {document_id}: {e}")
-            raise
-
-    async def _parse_document(self, file_path: str) -> str:
-        """
-        Parse document and extract text
-
-        TODO: Integrate with Unstructured.io for advanced parsing
-        For MVP, handle basic text files
-
-        Args:
-            file_path: Path to document
-
-        Returns:
-            Extracted text
-        """
-        try:
-            # For MVP: Simple text file reading
-            # TODO: Add PDF, DOCX, image OCR support via Unstructured.io
-            with open(file_path, 'r', encoding='utf-8') as f:
-                text = f.read()
-
-            return text
+            await self.document_repo.update_status(doc.id, "completed", chunk_count=len(chunks))
+            logger.info(f"Document '{title}' processed successfully")
+            return doc
 
         except Exception as e:
-            logger.error(f"Error parsing document {file_path}: {e}")
-            # Try binary mode if UTF-8 fails
+            logger.error(f"Failed to process document '{title}': {e}")
+            await self.document_repo.update_status(doc.id, "failed", error_message=str(e))
             try:
-                with open(file_path, 'rb') as f:
-                    content = f.read()
-                    text = content.decode('utf-8', errors='ignore')
-                return text
-            except:
-                raise Exception(f"Could not parse document: {e}")
-
-    async def _chunk_text(
-        self,
-        text: str,
-        document_id: str,
-        title: str
-    ) -> List[Dict[str, Any]]:
-        """
-        Chunk text using LlamaIndex
-
-        Args:
-            text: Document text
-            document_id: Document identifier
-            title: Document title
-
-        Returns:
-            List of chunk dictionaries
-        """
-        try:
-            # Create LlamaIndex document
-            llama_doc = LlamaDocument(
-                text=text,
-                metadata={
-                    "document_id": document_id,
-                    "title": title
-                }
-            )
-
-            # Initialize sentence splitter
-            splitter = SentenceSplitter(
-                chunk_size=self.chunk_size,
-                chunk_overlap=self.chunk_overlap
-            )
-
-            # Split into nodes
-            nodes = splitter.get_nodes_from_documents([llama_doc])
-
-            # Convert to dictionaries
-            chunks = []
-            for i, node in enumerate(nodes):
-                chunks.append({
-                    "chunk_id": f"{document_id}_chunk_{i}",
-                    "text": node.get_content(),
-                    "chunk_index": i,
-                    "document_id": document_id,
-                    "title": title
-                })
-
-            return chunks
-
-        except Exception as e:
-            logger.error(f"Error chunking text: {e}")
+                await self.qdrant_service.delete_by_document(doc.id)
+            except Exception:
+                pass
             raise
 
-    async def _generate_embeddings(
-        self,
-        chunks: List[Dict[str, Any]]
-    ) -> List[List[float]]:
-        """
-        Generate embeddings for chunks
+    async def _extract_text(self, file_path: str) -> str:
+        ext = os.path.splitext(file_path)[1].lower()
 
-        Args:
-            chunks: List of chunk dictionaries
+        if ext in (".txt", ".md"):
+            async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
+                return await f.read()
 
-        Returns:
-            List of embedding vectors
-        """
-        try:
-            texts = [chunk["text"] for chunk in chunks]
-            embeddings = await self.ollama_service.embed_batch(texts)
-            return embeddings
+        elif ext == ".pdf":
+            from pypdf import PdfReader
+            reader = PdfReader(file_path)
+            pages = [page.extract_text() or "" for page in reader.pages]
+            return "\n\n".join(pages)
 
-        except Exception as e:
-            logger.error(f"Error generating embeddings: {e}")
-            raise
+        else:
+            raise ValueError(f"Unsupported file format: {ext}")
 
-    async def _store_in_qdrant(
-        self,
-        document_id: str,
-        chunks: List[Dict[str, Any]],
-        embeddings: List[List[float]],
-        metadata: Dict[str, Any]
-    ):
-        """
-        Store chunks and embeddings in Qdrant
+    def _chunk_text(self, text: str, document_id: str, title: str) -> list[dict]:
+        splitter = SentenceSplitter(
+            chunk_size=self.chunk_size,
+            chunk_overlap=self.chunk_overlap,
+        )
+        text_chunks = splitter.split_text(text)
 
-        Args:
-            document_id: Document identifier
-            chunks: List of chunks
-            embeddings: List of embedding vectors
-            metadata: Document metadata
-        """
-        try:
-            # Ensure collection exists
-            await self.qdrant_service.ensure_collection()
+        return [
+            {
+                "chunk_id": f"{document_id}_chunk_{i}",
+                "text": chunk,
+                "chunk_index": i,
+                "document_id": document_id,
+                "title": title,
+            }
+            for i, chunk in enumerate(text_chunks)
+        ]
 
-            # Prepare payloads
-            payloads = []
-            ids = []
-            for chunk in chunks:
-                payload = {
-                    **chunk,
-                    **metadata
-                }
-                payloads.append(payload)
-                ids.append(chunk["chunk_id"])
+    async def delete_document(self, doc_id: str) -> bool:
+        doc = await self.document_repo.get(doc_id)
+        if not doc:
+            return False
 
-            # Store in Qdrant
-            await self.qdrant_service.add_vectors(
-                vectors=embeddings,
-                payloads=payloads,
-                ids=ids
-            )
+        await self.qdrant_service.delete_by_document(doc_id)
 
-            logger.info(f"Stored {len(chunks)} chunks in Qdrant for document {document_id}")
+        if doc.file_path and os.path.exists(doc.file_path):
+            os.remove(doc.file_path)
 
-        except Exception as e:
-            logger.error(f"Error storing in Qdrant: {e}")
-            raise
-
-    async def delete_document(self, document_id: str):
-        """
-        Delete all data for a document
-
-        Args:
-            document_id: Document identifier
-        """
-        try:
-            # Delete from Qdrant
-            await self.qdrant_service.delete_by_document_id(document_id)
-
-            # TODO: Delete from filesystem
-            # TODO: Delete from Neo4j (will be in entity service)
-
-            logger.info(f"Deleted document: {document_id}")
-
-        except Exception as e:
-            logger.error(f"Error deleting document {document_id}: {e}")
-            raise
+        await self.document_repo.delete(doc_id)
+        logger.info(f"Document '{doc.title}' deleted")
+        return True
