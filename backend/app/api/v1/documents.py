@@ -1,103 +1,89 @@
-"""
-Document management endpoints
-"""
-from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
-from typing import List
-from loguru import logger
+import os
+import uuid
+import aiofiles
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.schemas import Document, DocumentList, DocumentUpload
-from app.core.security import get_current_user
+from app.models.database import get_db
+from app.models.repositories import DocumentRepository
+from app.core.config import settings
+from app.dependencies import get_ingestion_service
 
-router = APIRouter()
+router = APIRouter(prefix="/documents", tags=["documents"])
 
 
-@router.post("/upload", response_model=Document, status_code=status.HTTP_201_CREATED)
+@router.post("/upload")
 async def upload_document(
     file: UploadFile = File(...),
-    metadata: DocumentUpload = Depends(),
-    current_user: dict = Depends(get_current_user)
+    db: AsyncSession = Depends(get_db),
+    ingestion_service=Depends(get_ingestion_service),
 ):
-    """
-    Upload a new document to the canon
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in (".txt", ".md", ".pdf"):
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
 
-    Accepts: PDF, DOCX, TXT, Markdown, Images
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    file_id = str(uuid.uuid4())
+    file_path = os.path.join(settings.UPLOAD_DIR, f"{file_id}{ext}")
 
-    TODO: Implement document processing pipeline
-    """
-    logger.info(f"Uploading document: {file.filename}")
+    async with aiofiles.open(file_path, "wb") as f:
+        content = await file.read()
+        await f.write(content)
 
-    # TODO:
-    # 1. Save file to disk
-    # 2. Parse with Unstructured.io
-    # 3. Chunk with LlamaIndex
-    # 4. Generate embeddings
-    # 5. Store in Qdrant
-    # 6. Extract entities and build graph
-    # 7. Store metadata in PostgreSQL
+    title = file.filename or file_id
+    doc = await ingestion_service.process_document(file_path=file_path, title=title)
 
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Document upload pipeline not yet implemented"
-    )
+    return {
+        "id": doc.id,
+        "title": doc.title,
+        "status": doc.status,
+        "chunk_count": doc.chunk_count,
+    }
 
 
-@router.get("", response_model=DocumentList)
+@router.get("")
 async def list_documents(
     skip: int = 0,
-    limit: int = 100,
-    current_user: dict = Depends(get_current_user)
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
 ):
-    """
-    List all documents in the canon
-
-    TODO: Implement database query
-    """
-    logger.info(f"Listing documents (skip={skip}, limit={limit})")
-
-    # TODO: Query PostgreSQL for document list
-
-    return DocumentList(documents=[], total=0)
-
-
-@router.get("/{document_id}", response_model=Document)
-async def get_document(
-    document_id: str,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Get details for a specific document
-
-    TODO: Implement database lookup
-    """
-    logger.info(f"Getting document: {document_id}")
-
-    # TODO: Query database for document
-
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"Document {document_id} not found"
-    )
+    repo = DocumentRepository(db)
+    docs = await repo.list(skip=skip, limit=limit)
+    return [
+        {
+            "id": d.id,
+            "title": d.title,
+            "status": d.status,
+            "chunk_count": d.chunk_count,
+            "created_at": d.created_at.isoformat(),
+        }
+        for d in docs
+    ]
 
 
-@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.get("/{doc_id}")
+async def get_document(doc_id: str, db: AsyncSession = Depends(get_db)):
+    repo = DocumentRepository(db)
+    doc = await repo.get(doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return {
+        "id": doc.id,
+        "title": doc.title,
+        "status": doc.status,
+        "chunk_count": doc.chunk_count,
+        "file_path": doc.file_path,
+        "created_at": doc.created_at.isoformat(),
+        "error_message": doc.error_message,
+    }
+
+
+@router.delete("/{doc_id}")
 async def delete_document(
-    document_id: str,
-    current_user: dict = Depends(get_current_user)
+    doc_id: str,
+    ingestion_service=Depends(get_ingestion_service),
 ):
-    """
-    Delete a document from the canon
-
-    TODO: Implement deletion with cleanup
-    """
-    logger.info(f"Deleting document: {document_id}")
-
-    # TODO:
-    # 1. Remove from filesystem
-    # 2. Remove from Qdrant
-    # 3. Remove from Neo4j
-    # 4. Remove from PostgreSQL
-
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Document deletion not yet implemented"
-    )
+    deleted = await ingestion_service.delete_document(doc_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return {"status": "deleted"}

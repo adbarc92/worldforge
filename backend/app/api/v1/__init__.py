@@ -1,16 +1,8 @@
-"""
-API v1 Router
-"""
 from fastapi import APIRouter
 
-from app.api.v1 import auth, documents, query, proposals, graph, consistency
+from app.api.v1.documents import router as documents_router
+from app.api.v1.query import router as query_router
 
-api_router = APIRouter()
-
-# Include all endpoint routers
-api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
-api_router.include_router(documents.router, prefix="/documents", tags=["Documents"])
-api_router.include_router(query.router, prefix="/query", tags=["Query & Retrieval"])
-api_router.include_router(proposals.router, prefix="/proposals", tags=["Proposals"])
-api_router.include_router(graph.router, prefix="/graph", tags=["Knowledge Graph"])
-api_router.include_router(consistency.router, prefix="/consistency", tags=["Consistency"])
+router = APIRouter(prefix="/api/v1")
+router.include_router(documents_router)
+router.include_router(query_router)
