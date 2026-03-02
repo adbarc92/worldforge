@@ -3,6 +3,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
+from alembic.config import Config as AlembicConfig
+from alembic import command as alembic_command
 
 from app.core.config import settings
 from app.models.database import engine
@@ -11,10 +13,18 @@ from app.api.v1 import router as api_router
 from app.api.v1.openai_compat import router as openai_router
 
 
+def run_migrations():
+    alembic_cfg = AlembicConfig("alembic.ini")
+    alembic_command.upgrade(alembic_cfg, "head")
+    logger.info("Database migrations applied")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Canon Builder API")
+
+    run_migrations()
 
     qdrant = get_qdrant_service()
     await qdrant.ensure_collection()
