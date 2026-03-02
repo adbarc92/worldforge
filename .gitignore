@@ -97,6 +97,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Worktrees
+.worktrees/
+
 # Project specific
 neo4j_data/
 qdrant_data/
