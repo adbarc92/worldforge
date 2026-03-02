@@ -1,191 +1,71 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  # Vector database for embeddings
-  qdrant:
-    image: qdrant/qdrant:v1.7.4
-    container_name: canon_qdrant
-    ports:
-      - "6333:6333"
-      - "6334:6334"
-    volumes:
-      - qdrant_data:/qdrant/storage
-    environment:
-      - QDRANT_ALLOW_RECOVERY_MODE=true
-    restart: unless-stopped
-
-  # Knowledge graph database
-  neo4j:
-    image: neo4j:5.24-community
-    container_name: canon_neo4j
-    ports:
-      - "7474:7474"  # HTTP
-      - "7687:7687"  # Bolt
-    volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
-      - neo4j_import:/var/lib/neo4j/import
-    environment:
-      - NEO4J_AUTH=neo4j/canon_builder_pass_2024
-      - NEO4J_PLUGINS=["apoc", "graph-data-science"]
-      - NEO4J_dbms_memory_heap_max__size=2G
-      - NEO4J_dbms_memory_pagecache_size=1G
-    restart: unless-stopped
-
-  # Document parsing service
-  unstructured:
-    image: downloads.unstructured.io/unstructured-io/unstructured-api:latest
-    container_name: canon_unstructured
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./uploads:/app/uploads
-    environment:
-      - UNSTRUCTURED_ALLOWED_MIMETYPES=application/pdf,image/png,image/jpeg,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document
-    restart: unless-stopped
-
-  # Local LLM runtime
-  ollama:
-    image: ollama/ollama:latest
-    container_name: canon_ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    restart: unless-stopped
-    # Note: Run after startup to preload models:
-    # docker exec -it canon_ollama ollama pull llama3.1:70b
-    # docker exec -it canon_ollama ollama pull bge-large-en-v1.5
-
-  # Web UI for chat and upload
-  openwebui:
-    image: ghcr.io/open-webui/open-webui:main
-    container_name: canon_webui
-    ports:
-      - "3000:8080"
-    volumes:
-      - openwebui_data:/app/backend/data
-    environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:-change_this_secret_key_in_production}
-      - ENABLE_RAG=true
-    depends_on:
-      - ollama
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: unless-stopped
-
-  # Backend API
-  canon_api:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: canon_api
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./backend:/app
-      - ./data:/data
-      - ./documents:/documents
-    environment:
-      - QDRANT_URL=http://qdrant:6333
-      - NEO4J_URI=bolt://neo4j:7687
-      - NEO4J_USER=neo4j
-      - NEO4J_PASSWORD=canon_builder_pass_2024
-      - OLLAMA_URL=http://ollama:11434
-      - UNSTRUCTURED_URL=http://unstructured:8000
-      - POSTGRES_URL=postgresql://canon:canon_pass@postgres:5432/canon_metadata
-      - JWT_SECRET=${JWT_SECRET:-your_jwt_secret_here}
-      - ENVIRONMENT=development
-    depends_on:
-      - qdrant
-      - neo4j
-      - ollama
-      - unstructured
-      - postgres
-    restart: unless-stopped
-
-  # PostgreSQL for metadata
   postgres:
     image: postgres:16-alpine
-    container_name: canon_postgres
+    environment:
+      POSTGRES_DB: canon_builder
+      POSTGRES_USER: canon_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-canon_pass}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/migrations:/docker-entrypoint-initdb.d
-    environment:
-      - POSTGRES_USER=canon
-      - POSTGRES_PASSWORD=canon_pass
-      - POSTGRES_DB=canon_metadata
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U canon_user -d canon_builder"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Prometheus for metrics (optional, for monitoring)
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: canon_prometheus
+  qdrant:
+    image: qdrant/qdrant:latest
     ports:
-      - "9090:9090"
+      - "6333:6333"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-    restart: unless-stopped
-    profiles:
-      - monitoring
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Grafana for visualization (optional, for monitoring)
-  grafana:
-    image: grafana/grafana:latest
-    container_name: canon_grafana
+  canon_api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
-      - "3001:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - "8080:8080"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      DATABASE_URL: postgresql+asyncpg://canon_user:${POSTGRES_PASSWORD:-canon_pass}@postgres:5432/canon_builder
+      QDRANT_URL: http://qdrant:6333
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-large}
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
-      - prometheus
-    restart: unless-stopped
-    profiles:
-      - monitoring
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    ports:
+      - "3000:8080"
+    environment:
+      OPENAI_API_BASE_URL: http://canon_api:8080/v1
+      OPENAI_API_KEY: "unused"
+      WEBUI_AUTH: "false"
+    volumes:
+      - openwebui_data:/app/backend/data
+    depends_on:
+      - canon_api
 
 volumes:
-  qdrant_data:
-  neo4j_data:
-  neo4j_logs:
-  neo4j_import:
-  ollama_data:
-  openwebui_data:
   postgres_data:
-  prometheus_data:
-  grafana_data:
-
-networks:
-  default:
-    name: canon_network
-
-# Usage:
-# 1. Copy .env.example to .env and customize secrets
-# 2. docker-compose up -d
-# 3. Wait for services to start (~30 seconds)
-# 4. Load models: docker exec -it canon_ollama ollama pull llama3.1:70b
-# 5. Load embeddings: docker exec -it canon_ollama ollama pull bge-large-en-v1.5
-# 6. Access web UI at http://localhost:3000
-# 7. Access Neo4j browser at http://localhost:7474 (user: neo4j, pass: canon_builder_pass_2024)
-# 8. Access API docs at http://localhost:8080/docs
-#
-# For monitoring (optional):
-# docker-compose --profile monitoring up -d
-# Access Grafana at http://localhost:3001 (user: admin, pass: from .env)
+  qdrant_data:
+  uploads_data:
+  openwebui_data:
