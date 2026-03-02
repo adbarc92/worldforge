@@ -1,303 +1,279 @@
-# AetherCanon Builder
+# Canon Builder
 
-**An open-source, locally-hosted knowledge coherence system for worldbuilders**
+**An open-source, self-hosted tool for constructing and maintaining logically coherent knowledge systems.**
 
-Build and maintain logically consistent fictional universes using AI assistance. Perfect for fiction writers, game designers, and TTRPG creators.
+Canon Builder helps you build complex, internally consistent knowledge bases that grow over time without accumulating contradictions. Primarily designed for worldbuilding (fiction writers, game designers, TTRPG enthusiasts), it also supports research synthesis, policy analysis, and any domain requiring logical consistency.
 
-## Features (Phase 1 MVP)
+## Core Features
 
-- 📄 **Document Ingestion** - Upload PDF, DOCX, and Markdown files with automatic entity extraction
-- 🔍 **Semantic Query** - Ask questions about your world with AI-powered answers and citations
-- ⚠️ **Inconsistency Detection** - Automatically detect contradictions in your worldbuilding lore
-- ✅ **Review Queue** - Review and approve AI-generated content before it becomes canonical
-- 📤 **Obsidian Export** - Export your knowledge graph to Obsidian format
+- **Human-in-the-Loop Canonization**: Explicit separation of "canonical" (user-verified) from "proposed" (AI-generated) content
+- **Consistency Checking**: Automatic detection of contradictions across your knowledge base
+- **Hybrid RAG System**: Semantic search (Qdrant) + Knowledge graph (Neo4j) + Local LLMs (Ollama)
+- **Obsidian Integration**: Familiar graph-based exploration and markdown editing
+- **Privacy-First**: Fully local/self-hosted by default, cloud optional
+- **Version Control**: Git-backed versioning with full audit trails
 
-## Core Innovation
+## Architecture
 
-AetherCanon Builder separates "canonical" (user-approved) content from "proposed" (AI-generated) content with explicit review workflows. This enables confident use of unreliable LLMs for creative knowledge work.
-
-## Tech Stack
-
-**Simplified MVP Architecture:**
-- **Backend:** FastAPI with Python 3.11
-- **Databases:** SQLite (metadata), ChromaDB (vector embeddings)
-- **RAG:** LlamaIndex for semantic search
-- **LLM:** Hybrid support for Claude API and Ollama (local)
-- **Frontend:** Streamlit web UI
-- **Deployment:** Docker Compose
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Obsidian (Primary) | Web UI (Secondary) | REST API             │
+├─────────────────────────────────────────────────────────────────┤
+│  FastAPI Backend | LlamaIndex RAG | LangGraph Agents            │
+├─────────────────────────────────────────────────────────────────┤
+│  Qdrant (Vectors) | Neo4j (Graph) | PostgreSQL (Metadata)       │
+├─────────────────────────────────────────────────────────────────┤
+│  Ollama (Local LLMs) | BGE-large-en-v1.5 (Embeddings)           │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ## Quick Start
 
 ### Prerequisites
 
-- Docker Desktop with Docker Compose
-- 16GB RAM minimum (32GB recommended)
-- (Optional) NVIDIA GPU for faster local inference with Ollama
-- (Optional) Claude API key for cloud-based LLM
+- **Docker & Docker Compose** (required)
+- **64GB+ RAM recommended** (16GB minimum for CPU-only mode)
+- **NVIDIA GPU** (optional but strongly recommended for good performance)
+- **100GB+ free disk space**
 
 ### Installation
 
-1. **Clone the repository:**
+1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/worldforge.git
-   cd worldforge
+   git clone https://github.com/yourusername/canon-builder.git
+   cd canon-builder
    ```
 
-2. **Configure environment variables:**
+2. **Configure environment**
    ```bash
    cp .env.example .env
+   # Edit .env and set secure secrets
    ```
 
-   Edit `.env` and set your preferred LLM provider:
-
-   **For Claude API (recommended for faster development):**
-   ```env
-   LLM_PROVIDER=claude
-   CLAUDE_API_KEY=your-api-key-here
-   ```
-
-   **For Ollama (local, no API costs):**
-   ```env
-   LLM_PROVIDER=ollama
-   ```
-
-3. **Start the services:**
+3. **Start all services**
    ```bash
    docker-compose up -d
    ```
 
-4. **(Ollama users only) Pull the model:**
+4. **Wait for services to initialize** (~30-60 seconds)
+
+5. **Pull LLM models** (first time only, ~40GB download)
    ```bash
-   docker exec -it worldforge-ollama-1 ollama pull mistral:7b-instruct
+   # Pull the LLM (this will take a while)
+   docker exec -it canon_ollama ollama pull llama3.1:70b
+
+   # Pull the embedding model
+   docker exec -it canon_ollama ollama pull bge-large-en-v1.5
    ```
 
-5. **Access the application:**
-   - **Web UI:** http://localhost:8501
-   - **API Docs:** http://localhost:8000/docs
+6. **Access the interfaces**
+   - **Web UI**: http://localhost:3000
+   - **API Docs**: http://localhost:8080/docs
+   - **Neo4j Browser**: http://localhost:7474 (user: `neo4j`, pass: `canon_builder_pass_2024`)
 
-### Stopping the Services
+### Using Obsidian
 
-```bash
-docker-compose down
-```
+1. **Copy the vault template**
+   ```bash
+   cp -r obsidian-vault-template my-canon-vault
+   ```
 
-To remove all data (reset):
-```bash
-docker-compose down -v
-rm -rf data/
-```
+2. **Open in Obsidian**
+   - Launch Obsidian
+   - Open folder as vault: `my-canon-vault`
 
-## Project Structure
+3. **Start building your canon**
+   - Use templates to create entities
+   - Link entities with `[[wiki-style links]]`
+   - View relationships in graph view
 
-```
-worldforge/
-├── backend/               # FastAPI application
-│   ├── app/
-│   │   ├── config.py     # Configuration management
-│   │   ├── main.py       # FastAPI entry point
-│   │   ├── database/     # SQLAlchemy models & connection
-│   │   ├── ingestion/    # Document parsing & entity extraction
-│   │   ├── retrieval/    # Semantic search & RAG
-│   │   ├── consistency/  # Inconsistency detection
-│   │   ├── llm/          # LLM provider abstraction
-│   │   ├── review/       # Review queue logic
-│   │   ├── export/       # Obsidian export
-│   │   └── api/          # REST API routes
-│   └── requirements.txt
-├── frontend/             # Streamlit web UI
-│   ├── app.py           # Main page
-│   └── pages/           # Feature pages
-├── config/              # YAML configuration files
-├── data/                # Persistent data (git-ignored)
-├── docs/                # Documentation
-│   └── CoreDesignDoc.md
-├── docker-compose.yml   # Container orchestration
-├── Dockerfile           # Application container
-└── README.md
-```
-
-## Development Setup
-
-For development with hot reload:
-
-```bash
-# Copy development config
-cp config/config.example.yaml config/config.dev.yaml
-
-# Edit config.dev.yaml with your settings
-# Set DEBUG=true in .env
-
-# Run with development overrides
-docker-compose up --build
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-docker exec -it worldforge-app-1 pytest
-
-# Run with coverage
-docker exec -it worldforge-app-1 pytest --cov=app tests/
-```
-
-### Database Migrations
-
-```bash
-# Create a new migration
-docker exec -it worldforge-app-1 alembic -c backend/alembic.ini revision --autogenerate -m "description"
-
-# Apply migrations
-docker exec -it worldforge-app-1 alembic -c backend/alembic.ini upgrade head
-```
-
-## Usage Guide
+## Usage
 
 ### 1. Upload Documents
 
-1. Navigate to the Upload page in the web UI
-2. Upload PDF, DOCX, or Markdown files
-3. Wait for processing (chunking, embedding, entity extraction)
-4. View extracted entities in the Review Queue
+Upload your initial worldbuilding documents to establish the canon:
 
-### 2. Review AI-Generated Content
+```bash
+curl -X POST "http://localhost:8080/api/v1/documents/upload" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@worldbuilding-notes.txt" \
+  -F "title=Initial World Notes"
+```
 
-1. Go to the Review Queue page
-2. View proposed entities and relationships
-3. Approve, reject, or edit each item
-4. Approved items become part of your canonical knowledge
+Or use the Web UI at http://localhost:3000
 
-### 3. Query Your World
+### 2. Query Your Canon
 
-1. Navigate to the Query page
-2. Ask questions about your world (e.g., "Who is Aragorn?")
-3. Get AI-generated answers with citations to source documents
-4. Citations are linked to original documents and page numbers
+Ask questions about your canonical content:
 
-### 4. Detect Inconsistencies
+```bash
+curl -X POST "http://localhost:8080/api/v1/query" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "What are the main characteristics of the magic system?",
+    "top_k": 10
+  }'
+```
 
-1. Conflicts are automatically detected when documents are uploaded
-2. View detected conflicts in the Conflicts page
-3. See side-by-side evidence from different sources
-4. Mark conflicts as resolved or "not a conflict"
+### 3. Generate Extensions
 
-### 5. Export to Obsidian
+Request AI-generated extensions to your canon:
 
-1. Go to the Export page
-2. Select entities and formats
-3. Download the generated Obsidian vault
-4. Open in Obsidian to view your knowledge graph
+```bash
+curl -X POST "http://localhost:8080/api/v1/proposals/extend" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "What would happen if gunpowder was introduced to this world?",
+    "creativity_level": 0.7
+  }'
+```
+
+### 4. Review & Canonize
+
+Review proposals in the Web UI and choose to:
+- **Accept**: Proposal becomes canonical
+- **Edit**: Modify before accepting
+- **Reject**: Discard the proposal
+- **Revise**: Request a new generation with feedback
+
+## Development
+
+### Project Structure
+
+```
+canon-builder/
+├── backend/              # FastAPI backend
+│   ├── app/
+│   │   ├── api/         # API endpoints
+│   │   ├── core/        # Configuration, security
+│   │   ├── models/      # Data models
+│   │   ├── services/    # Business logic
+│   │   └── utils/       # Utilities
+│   ├── migrations/      # Database migrations
+│   └── tests/           # Unit tests
+├── docs/                # Documentation
+├── obsidian-vault-template/  # Vault template
+├── docker-compose.yml   # Service orchestration
+└── README.md
+```
+
+### Running Locally (Development)
+
+```bash
+# Backend only
+cd backend
+python -m venv venv
+source venv/bin/activate  # or `venv\Scripts\activate` on Windows
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+```
+
+### Testing
+
+```bash
+cd backend
+pytest tests/ -v --cov=app
+```
+
+## Hardware Requirements
+
+| Tier | RAM | GPU | Storage | Use Case | Speed |
+|------|-----|-----|---------|----------|-------|
+| **Minimum** | 16 GB | None (CPU) | 100 GB | <50 docs, single user | ~5 tokens/sec |
+| **Recommended** | 64 GB | RTX 3060 (12GB) | 500 GB | 50-500 docs, 2-5 users | ~40 tokens/sec |
+| **Optimal** | 128 GB | RTX 4090 (24GB) | 1+ TB | 500+ docs, 10+ users | ~80 tokens/sec |
 
 ## Configuration
 
-### LLM Provider Selection
+Key environment variables in `.env`:
 
-**Claude API (Recommended for development):**
-- Faster, more accurate
-- Requires API key and costs per token
-- Best for initial development and testing
+- `JWT_SECRET`: Secret key for JWT tokens (change in production!)
+- `OLLAMA_URL`: Ollama service URL (default: http://ollama:11434)
+- `QDRANT_URL`: Qdrant vector DB URL (default: http://qdrant:6333)
+- `NEO4J_URI`: Neo4j graph DB URI (default: bolt://neo4j:7687)
+- `LLM_MODEL`: Model to use (default: llama3.1:70b)
+- `EMBEDDING_MODEL`: Embedding model (default: bge-large-en-v1.5)
 
-**Ollama (For production/privacy):**
-- Runs locally, no API costs
-- Requires more RAM and compute
-- Supports various models (Mistral, Llama, etc.)
+## API Documentation
 
-### Customizing Prompts
+Full API documentation available at http://localhost:8080/docs when running.
 
-Edit `backend/app/llm/prompts.py` to customize:
-- Entity extraction templates
-- Contradiction detection logic
-- Query response formatting
+### Key Endpoints
 
-### Adjusting Thresholds
-
-In `.env`:
-```env
-SIMILARITY_THRESHOLD=0.85          # Conflict detection sensitivity
-HIGH_CONFIDENCE_THRESHOLD=0.90     # Auto-approve threshold
-CHUNK_SIZE=500                     # Text chunk size in tokens
-CHUNK_OVERLAP=50                   # Overlap between chunks
-```
+- `POST /api/v1/auth/login` - Authenticate and get JWT token
+- `POST /api/v1/documents/upload` - Upload documents
+- `GET /api/v1/documents` - List all documents
+- `POST /api/v1/query` - Query canonical knowledge
+- `POST /api/v1/proposals/extend` - Generate extensions
+- `GET /api/v1/graph/entities` - List knowledge graph entities
+- `GET /api/v1/consistency/contradictions` - List detected contradictions
 
 ## Roadmap
 
-### ✅ Phase 0: Foundation (Current)
-- [x] Project structure
-- [x] Docker deployment
-- [x] Database models
-- [x] LLM provider abstraction
-- [x] Basic FastAPI app
+### Phase 1: MVP (Current)
+- [x] Document ingestion and indexing
+- [x] Basic RAG with Q&A
+- [x] Extension generation with review
+- [x] Docker Compose deployment
+- [ ] Entity extraction and graph building
+- [ ] Basic contradiction detection
+- [ ] Obsidian plugin (basic)
 
-### 🚧 Phase 1: MVP Features (In Progress)
-- [ ] Document ingestion pipeline
-- [ ] Semantic query with citations
-- [ ] Inconsistency detection
-- [ ] Review queue interface
-- [ ] Obsidian export
+### Phase 2: Enhanced Coherence (Next)
+- [ ] Advanced consistency checking
+- [ ] Coherence scoring (0-100)
+- [ ] Severity-rated alerts
+- [ ] Multi-user collaboration
+- [ ] Cloud API fallback
 
-### 📅 Phase 2: Collaboration (Future)
-- [ ] Git-based versioning
-- [ ] Multi-user permissions
-- [ ] Comment system
-- [ ] Activity log
-- [ ] Merge conflict resolution
-
-### 📅 Phase 3: Advanced Features
-- [ ] Neo4j integration for advanced graph queries
-- [ ] Web-based graph visualization
-- [ ] API webhooks
-- [ ] Plugin system
-
-## Troubleshooting
-
-### Ollama model not found
-```bash
-docker exec -it worldforge-ollama-1 ollama pull mistral:7b-instruct
-```
-
-### Port already in use
-Change ports in `docker-compose.yml` or `.env`:
-```env
-API_PORT=8001
-STREAMLIT_PORT=8502
-```
-
-### Out of memory
-Reduce chunk size or increase Docker memory limit in Docker Desktop settings.
-
-### ChromaDB errors
-Delete and recreate:
-```bash
-docker-compose down
-rm -rf data/chromadb
-docker-compose up -d
-```
+### Phase 3: Advanced Features
+- [ ] Toggleable suggestion engine
+- [ ] Gap identification
+- [ ] Multiple canon branches
+- [ ] Advanced export (PDF, static sites)
+- [ ] Plugin ecosystem
 
 ## Contributing
 
-This is currently a solo project in active development. Contributions welcome after Phase 1 MVP is complete.
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-MIT License - See LICENSE file
+MIT License - see [LICENSE](LICENSE) for details.
 
 ## Support
 
-- **Issues:** https://github.com/yourusername/worldforge/issues
-- **Documentation:** See `docs/CoreDesignDoc.md`
+- **Documentation**: [docs/](docs/)
+- **Issues**: [GitHub Issues](https://github.com/yourusername/canon-builder/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/canon-builder/discussions)
 
 ## Acknowledgments
 
 Built with:
-- [FastAPI](https://fastapi.tiangolo.com/)
-- [LlamaIndex](https://www.llamaindex.ai/)
-- [ChromaDB](https://www.trychroma.com/)
-- [Streamlit](https://streamlit.io/)
-- [Anthropic Claude](https://www.anthropic.com/)
-- [Ollama](https://ollama.ai/)
+- [LlamaIndex](https://github.com/run-llama/llama_index) - RAG framework
+- [LangGraph](https://github.com/langchain-ai/langgraph) - Agent orchestration
+- [Qdrant](https://github.com/qdrant/qdrant) - Vector search
+- [Neo4j](https://neo4j.com/) - Knowledge graph
+- [Ollama](https://github.com/ollama/ollama) - Local LLM runtime
+- [FastAPI](https://fastapi.tiangolo.com/) - Backend framework
+
+## Citation
+
+If you use Canon Builder in your research or projects, please cite:
+
+```bibtex
+@software{canon_builder,
+  title = {Canon Builder: A Tool for Constructing Coherent Knowledge Systems},
+  author = {Your Name},
+  year = {2025},
+  url = {https://github.com/yourusername/canon-builder}
+}
+```
 
 ---
 
-**Status:** Phase 1 MVP in development
+**Status**: Phase 1 MVP - Under Active Development
 
-**Last Updated:** January 2026
+**Last Updated**: January 2025
