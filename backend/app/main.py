@@ -1,105 +1,65 @@
-"""
-AetherCanon Builder - FastAPI Application
-Main application entry point.
-"""
-
-import logging
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
 
-from .config import settings
-from .database.connection import init_db, init_chroma_collections, close_db
-
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, settings.log_level),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+from app.core.config import settings
+from app.models.database import engine
+from app.dependencies import get_llm_service, get_qdrant_service
+from app.api.v1 import router as api_router
+from app.api.v1.openai_compat import router as openai_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager for startup and shutdown."""
     # Startup
-    logger.info("Initializing AetherCanon Builder...")
-    logger.info(f"Environment: {settings.environment}")
-    logger.info(f"LLM Provider: {settings.llm_provider}")
+    logger.info("Starting Canon Builder API")
 
-    # Initialize databases
-    await init_db()
-    logger.info("SQLite database initialized")
+    qdrant = get_qdrant_service()
+    await qdrant.ensure_collection()
+    logger.info("Qdrant collection verified")
 
-    init_chroma_collections()
-    logger.info("ChromaDB collections initialized")
+    llm = get_llm_service()
+    status = await llm.check_available()
+    for provider, available in status.items():
+        level = "info" if available else "warning"
+        getattr(logger, level)(f"LLM {provider}: {'available' if available else 'UNAVAILABLE'}")
 
+    logger.info("Canon Builder API ready")
     yield
 
     # Shutdown
-    logger.info("Shutting down AetherCanon Builder...")
-    await close_db()
-    logger.info("Database connections closed")
+    qdrant = get_qdrant_service()
+    await qdrant.close()
+    await engine.dispose()
+    logger.info("Canon Builder API shut down")
 
 
-# Create FastAPI app
 app = FastAPI(
-    title="AetherCanon Builder",
-    description="Open-source knowledge coherence system for worldbuilders",
-    version="0.1.0",
-    lifespan=lifespan
+    title="Canon Builder",
+    description="RAG-powered worldbuilding knowledge system",
+    version="0.2.0",
+    lifespan=lifespan,
 )
 
-# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict this
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(api_router)
+app.include_router(openai_router)
 
-# Health check endpoint
+
 @app.get("/health")
-async def health_check():
-    """Health check endpoint."""
+async def health():
+    llm = get_llm_service()
+    status = await llm.check_available()
     return {
-        "status": "healthy",
-        "environment": settings.environment,
-        "llm_provider": settings.llm_provider
+        "status": "healthy" if all(status.values()) else "degraded",
+        "services": status,
     }
-
-
-@app.get("/")
-async def root():
-    """Root endpoint with API information."""
-    return {
-        "name": "AetherCanon Builder API",
-        "version": "0.1.0",
-        "description": "Knowledge coherence system for worldbuilders",
-        "docs": "/docs",
-        "health": "/health"
-    }
-
-
-# Import and include API routes
-from .api.routes import documents, query, conflicts, review, export
-
-app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
-app.include_router(query.router, prefix="/api/query", tags=["query"])
-app.include_router(conflicts.router, prefix="/api/conflicts", tags=["conflicts"])
-app.include_router(review.router, prefix="/api/review", tags=["review"])
-app.include_router(export.router, prefix="/api/export", tags=["export"])
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(
-        "app.main:app",
-        host=settings.api_host,
-        port=settings.api_port,
-        reload=settings.is_development,
-        log_level=settings.log_level.lower()
-    )

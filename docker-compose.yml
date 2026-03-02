@@ -1,94 +1,71 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  app:
-    build: .
-    container_name: worldforge-app
-    ports:
-      - "8000:8000"  # FastAPI
-      - "8501:8501"  # Streamlit
+  postgres:
+    image: postgres:16-alpine
     environment:
-      # LLM Provider
-      - LLM_PROVIDER=${LLM_PROVIDER:-claude}
-
-      # Claude API
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
-      - CLAUDE_MODEL=${CLAUDE_MODEL:-claude-3-5-sonnet-20241022}
-      - CLAUDE_MAX_TOKENS=${CLAUDE_MAX_TOKENS:-4096}
-      - CLAUDE_TEMPERATURE=${CLAUDE_TEMPERATURE:-0.0}
-
-      # Ollama
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-mistral:7b-instruct}
-      - OLLAMA_TEMPERATURE=${OLLAMA_TEMPERATURE:-0.0}
-
-      # Database
-      - DATABASE_URL=sqlite:////data/worldforge.db
-      - CHROMADB_PATH=/data/chromadb
-
-      # Embeddings
-      - EMBEDDINGS_MODEL=${EMBEDDINGS_MODEL:-BAAI/bge-large-en-v1.5}
-      - EMBEDDINGS_DEVICE=${EMBEDDINGS_DEVICE:-cpu}
-
-      # Application
-      - DEBUG=${DEBUG:-false}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - ENVIRONMENT=${ENVIRONMENT:-production}
-
-      # API Settings
-      - API_HOST=0.0.0.0
-      - API_PORT=8000
-
-      # Frontend
-      - STREAMLIT_HOST=0.0.0.0
-      - STREAMLIT_PORT=8501
-
-      # Storage
-      - DOCUMENTS_PATH=/data/documents
-      - EXPORTS_PATH=/data/exports
-
-      # Chunking
-      - CHUNK_SIZE=${CHUNK_SIZE:-500}
-      - CHUNK_OVERLAP=${CHUNK_OVERLAP:-50}
-
-      # Thresholds
-      - SIMILARITY_THRESHOLD=${SIMILARITY_THRESHOLD:-0.85}
-      - HIGH_CONFIDENCE_THRESHOLD=${HIGH_CONFIDENCE_THRESHOLD:-0.90}
-
-    volumes:
-      - ./data:/data
-      - ./config:/app/config
-
-    depends_on:
-      - ollama
-
-    restart: unless-stopped
-
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  ollama:
-    image: ollama/ollama:latest
-    container_name: worldforge-ollama
+      POSTGRES_DB: canon_builder
+      POSTGRES_USER: canon_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-canon_pass}
     ports:
-      - "11434:11434"
+      - "5432:5432"
     volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U canon_user -d canon_builder"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-    # Uncomment for GPU support
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  canon_api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://canon_user:${POSTGRES_PASSWORD:-canon_pass}@postgres:5432/canon_builder
+      QDRANT_URL: http://qdrant:6333
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-large}
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    ports:
+      - "3000:8080"
+    environment:
+      OPENAI_API_BASE_URL: http://canon_api:8080/v1
+      OPENAI_API_KEY: "unused"
+      WEBUI_AUTH: "false"
+    volumes:
+      - openwebui_data:/app/backend/data
+    depends_on:
+      - canon_api
 
 volumes:
-  ollama_data:
-    driver: local
+  postgres_data:
+  qdrant_data:
+  uploads_data:
+  openwebui_data:
