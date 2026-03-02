@@ -13,10 +13,16 @@ from app.api.v1 import router as api_router
 from app.api.v1.openai_compat import router as openai_router
 
 
-def run_migrations():
+async def run_migrations():
+    import asyncio
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, _run_migrations_sync)
+    logger.info("Database migrations applied")
+
+
+def _run_migrations_sync():
     alembic_cfg = AlembicConfig("alembic.ini")
     alembic_command.upgrade(alembic_cfg, "head")
-    logger.info("Database migrations applied")
 
 
 @asynccontextmanager
@@ -24,7 +30,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Canon Builder API")
 
-    run_migrations()
+    await run_migrations()
 
     qdrant = get_qdrant_service()
     await qdrant.ensure_collection()
