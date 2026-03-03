@@ -29,6 +29,11 @@ def get_llm_service() -> LLMService:
     return _llm_service
 
 
+def reset_llm_service():
+    global _llm_service
+    _llm_service = None
+
+
 def get_qdrant_service() -> QdrantService:
     global _qdrant_service
     if _qdrant_service is None:
