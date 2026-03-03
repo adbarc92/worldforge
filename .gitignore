@@ -10,7 +10,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -47,7 +46,7 @@ venv.bak/
 
 # Data directories
 data/
-documents/
+/documents/
 uploads/
 obsidian-vault/
 
@@ -96,6 +95,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
 
 # Worktrees
 .worktrees/

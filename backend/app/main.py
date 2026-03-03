@@ -1,7 +1,10 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
@@ -79,3 +82,17 @@ async def health():
         "status": "healthy" if all(status.values()) else "degraded",
         "services": status,
     }
+
+
+# Serve frontend static files (production only)
+# MUST be after all API routes — the catch-all would intercept them otherwise
+frontend_dist = Path(__file__).resolve().parent.parent / "frontend_dist"
+if frontend_dist.is_dir():
+    app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="static")
+
+    @app.get("/{path:path}")
+    async def serve_spa(path: str):
+        file_path = (frontend_dist / path).resolve()
+        if file_path.is_file() and str(file_path).startswith(str(frontend_dist.resolve())):
+            return FileResponse(file_path)
+        return FileResponse(frontend_dist / "index.html")

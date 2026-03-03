@@ -1,42 +1,40 @@
+# Stage 1: Build frontend
+FROM node:20-alpine AS frontend-build
+WORKDIR /build
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Python application
 FROM python:3.11-slim
 
-# Set working directory
+# Install UV
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Create non-root user
+RUN useradd --create-home appuser
+
 WORKDIR /app
 
-# Install system dependencies for unstructured and document processing
-RUN apt-get update && apt-get install -y \
-    libmagic1 \
-    poppler-utils \
-    tesseract-ocr \
-    libreoffice \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements files
-COPY backend/requirements.txt ./backend/
-COPY frontend/requirements.txt ./frontend/
-
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r backend/requirements.txt && \
-    pip install --no-cache-dir -r frontend/requirements.txt
-
-# Download embedding model during build (caching for faster startup)
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-large-en-v1.5')"
+# Install dependencies (cached layer)
+COPY backend/pyproject.toml backend/uv.lock ./
+RUN uv sync --frozen --no-dev
 
 # Copy application code
-COPY backend/ ./backend/
-COPY frontend/ ./frontend/
+COPY backend/ .
 
-# Create data directories
-RUN mkdir -p /data/documents /data/chromadb /data/exports
+# Copy built frontend
+COPY --from=frontend-build /build/dist ./frontend_dist
 
-# Expose ports
-EXPOSE 8000 8501
+# Create upload directory
+RUN mkdir -p /app/uploads && chown -R appuser:appuser /app
 
-# Set Python path to find the app module
-ENV PYTHONPATH=/app/backend:$PYTHONPATH
+USER appuser
 
-# Default command runs both FastAPI and Streamlit
-# For production, use a process manager like supervisord
-CMD sh -c "uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 & streamlit run frontend/app.py --server.port 8501 --server.address 0.0.0.0 & wait"
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"
+
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
