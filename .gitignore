@@ -46,7 +46,7 @@ venv.bak/
 
 # Data directories
 data/
-documents/
+/documents/
 uploads/
 obsidian-vault/
 
