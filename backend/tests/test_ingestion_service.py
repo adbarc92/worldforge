@@ -57,7 +57,8 @@ async def test_chunk_text():
         assert set(chunk.keys()) == expected_keys
         assert chunk["document_id"] == "doc1"
         assert chunk["title"] == "Test Doc"
-        assert chunk["chunk_id"].startswith("doc1_chunk_")
+        # chunk_id is a UUID
+        assert len(chunk["chunk_id"]) == 36
 
 
 @pytest.mark.asyncio
