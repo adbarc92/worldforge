@@ -88,7 +88,7 @@ class IngestionService:
 
         return [
             {
-                "chunk_id": f"{document_id}_chunk_{i}",
+                "chunk_id": str(uuid.uuid4()),
                 "text": chunk,
                 "chunk_index": i,
                 "document_id": document_id,
