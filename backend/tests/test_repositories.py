@@ -23,7 +23,7 @@ def repo(mock_session):
 @pytest.mark.asyncio
 async def test_document_repository_create(repo, mock_session):
     """Verify Document is created with correct fields, session.add and commit called."""
-    doc = await repo.create(title="Test Document", file_path="/uploads/test.pdf")
+    doc = await repo.create(title="Test Document", file_path="/uploads/test.pdf", project_id="proj-1")
 
     # Verify session.add was called with a Document instance
     mock_session.add.assert_called_once()
@@ -31,6 +31,7 @@ async def test_document_repository_create(repo, mock_session):
     assert isinstance(added_doc, Document)
     assert added_doc.title == "Test Document"
     assert added_doc.file_path == "/uploads/test.pdf"
+    assert added_doc.project_id == "proj-1"
     assert added_doc.status == "pending"
     assert added_doc.id is not None  # UUID was assigned
 
@@ -43,8 +44,8 @@ async def test_document_repository_create(repo, mock_session):
 async def test_document_repository_list(repo, mock_session):
     """Mock execute result, verify list returns docs."""
     # Create mock documents
-    doc1 = Document(id="id-1", title="Doc 1", file_path="/a.pdf", status="pending")
-    doc2 = Document(id="id-2", title="Doc 2", file_path="/b.pdf", status="processed")
+    doc1 = Document(id="id-1", title="Doc 1", file_path="/a.pdf", status="pending", project_id="proj-1")
+    doc2 = Document(id="id-2", title="Doc 2", file_path="/b.pdf", status="processed", project_id="proj-1")
 
     # Set up the mock chain: session.execute() -> result.scalars().all()
     mock_scalars = MagicMock()
@@ -53,7 +54,7 @@ async def test_document_repository_list(repo, mock_session):
     mock_result.scalars.return_value = mock_scalars
     mock_session.execute.return_value = mock_result
 
-    docs = await repo.list(skip=0, limit=50)
+    docs = await repo.list(project_id="proj-1", skip=0, limit=50)
 
     assert len(docs) == 2
     assert docs[0].title == "Doc 1"
