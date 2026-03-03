@@ -92,7 +92,7 @@ if frontend_dist.is_dir():
 
     @app.get("/{path:path}")
     async def serve_spa(path: str):
-        file_path = frontend_dist / path
-        if file_path.is_file():
+        file_path = (frontend_dist / path).resolve()
+        if file_path.is_file() and str(file_path).startswith(str(frontend_dist.resolve())):
             return FileResponse(file_path)
         return FileResponse(frontend_dist / "index.html")
