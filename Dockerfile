@@ -24,10 +24,6 @@ RUN uv sync --frozen --no-dev
 # Copy application code
 COPY backend/ .
 
-# Copy alembic config and migrations
-COPY backend/alembic.ini ./alembic.ini
-COPY backend/alembic/ ./alembic/
-
 # Copy built frontend
 COPY --from=frontend-build /build/dist ./frontend_dist
 

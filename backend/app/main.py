@@ -73,7 +73,19 @@ app.add_middleware(
 app.include_router(api_router)
 app.include_router(openai_router)
 
+
+@app.get("/health")
+async def health():
+    llm = get_llm_service()
+    status = await llm.check_available()
+    return {
+        "status": "healthy" if all(status.values()) else "degraded",
+        "services": status,
+    }
+
+
 # Serve frontend static files (production only)
+# MUST be after all API routes — the catch-all would intercept them otherwise
 frontend_dist = Path(__file__).resolve().parent.parent / "frontend_dist"
 if frontend_dist.is_dir():
     app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="static")
@@ -84,13 +96,3 @@ if frontend_dist.is_dir():
         if file_path.is_file():
             return FileResponse(file_path)
         return FileResponse(frontend_dist / "index.html")
-
-
-@app.get("/health")
-async def health():
-    llm = get_llm_service()
-    status = await llm.check_available()
-    return {
-        "status": "healthy" if all(status.values()) else "degraded",
-        "services": status,
-    }
