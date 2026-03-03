@@ -83,6 +83,19 @@ class QdrantService:
             ),
         )
 
+    async def delete_by_project(self, project_id: str):
+        """Delete all vectors associated with a given project_id."""
+        await self.client.delete(
+            collection_name=self.collection_name,
+            points_selector=Filter(
+                must=[
+                    FieldCondition(
+                        key="project_id", match=MatchValue(value=project_id)
+                    )
+                ]
+            ),
+        )
+
     async def close(self):
         """Close the underlying client connection."""
         await self.client.close()
