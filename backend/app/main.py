@@ -1,7 +1,10 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
@@ -69,6 +72,18 @@ app.add_middleware(
 
 app.include_router(api_router)
 app.include_router(openai_router)
+
+# Serve frontend static files (production only)
+frontend_dist = Path(__file__).resolve().parent.parent / "frontend_dist"
+if frontend_dist.is_dir():
+    app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="static")
+
+    @app.get("/{path:path}")
+    async def serve_spa(path: str):
+        file_path = frontend_dist / path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        return FileResponse(frontend_dist / "index.html")
 
 
 @app.get("/health")
