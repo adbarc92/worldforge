@@ -39,19 +39,46 @@ export interface SettingsResponse {
   openai_embedding_model: string;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  description: string | null;
+  document_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export const api = {
   health: () => request<HealthResponse>("/health"),
 
-  documents: {
-    list: (skip = 0, limit = 50) =>
-      request<Document[]>(`/api/v1/documents?skip=${skip}&limit=${limit}`),
-    get: (id: string) => request<Document>(`/api/v1/documents/${id}`),
+  projects: {
+    list: () => request<Project[]>("/api/v1/projects"),
+    get: (id: string) => request<Project>(`/api/v1/projects/${id}`),
+    create: (data: { name: string; description?: string }) =>
+      request<Project>("/api/v1/projects", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: { name?: string; description?: string }) =>
+      request<Project>(`/api/v1/projects/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
     delete: (id: string) =>
-      request<{ status: string }>(`/api/v1/documents/${id}`, { method: "DELETE" }),
-    upload: async (file: File): Promise<Document> => {
+      request<{ status: string }>(`/api/v1/projects/${id}`, { method: "DELETE" }),
+  },
+
+  documents: {
+    list: (projectId: string, skip = 0, limit = 50) =>
+      request<Document[]>(`/api/v1/projects/${projectId}/documents?skip=${skip}&limit=${limit}`),
+    get: (projectId: string, id: string) =>
+      request<Document>(`/api/v1/projects/${projectId}/documents/${id}`),
+    delete: (projectId: string, id: string) =>
+      request<{ status: string }>(`/api/v1/projects/${projectId}/documents/${id}`, { method: "DELETE" }),
+    upload: async (projectId: string, file: File): Promise<Document> => {
       const form = new FormData();
       form.append("file", file);
-      const res = await fetch(`${BASE}/api/v1/documents/upload`, {
+      const res = await fetch(`${BASE}/api/v1/projects/${projectId}/documents/upload`, {
         method: "POST",
         body: form,
       });
@@ -63,8 +90,8 @@ export const api = {
     },
   },
 
-  query: (question: string, top_k = 10) =>
-    request<QueryResult>("/api/v1/query", {
+  query: (projectId: string, question: string, top_k = 10) =>
+    request<QueryResult>(`/api/v1/projects/${projectId}/query`, {
       method: "POST",
       body: JSON.stringify({ question, top_k }),
     }),

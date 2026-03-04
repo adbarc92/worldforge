@@ -1,25 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
-export function useDocuments() {
+export function useDocuments(projectId: string) {
   return useQuery({
-    queryKey: ["documents"],
-    queryFn: () => api.documents.list(),
+    queryKey: ["documents", projectId],
+    queryFn: () => api.documents.list(projectId),
+    enabled: !!projectId,
   });
 }
 
-export function useUploadDocument() {
+export function useUploadDocument(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (file: File) => api.documents.upload(file),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["documents"] }),
+    mutationFn: (file: File) => api.documents.upload(projectId, file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["documents", projectId] }),
   });
 }
 
-export function useDeleteDocument() {
+export function useDeleteDocument(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => api.documents.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["documents"] }),
+    mutationFn: (id: string) => api.documents.delete(projectId, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["documents", projectId] }),
   });
 }

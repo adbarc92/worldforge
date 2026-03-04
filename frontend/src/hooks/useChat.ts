@@ -7,7 +7,7 @@ export interface ChatMessage {
   citations?: { title: string; relevance_score: number }[];
 }
 
-export function useChat() {
+export function useChat(projectId: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -18,7 +18,7 @@ export function useChat() {
       setIsLoading(true);
 
       try {
-        const result = await api.query(question);
+        const result = await api.query(projectId, question);
         const assistantMsg: ChatMessage = {
           role: "assistant",
           content: result.answer,
@@ -35,7 +35,7 @@ export function useChat() {
         setIsLoading(false);
       }
     },
-    []
+    [projectId]
   );
 
   const clear = useCallback(() => setMessages([]), []);
