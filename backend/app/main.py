@@ -28,6 +28,43 @@ def _run_migrations_sync():
     alembic_command.upgrade(alembic_cfg, "head")
 
 
+async def backfill_qdrant_project_ids():
+    """Backfill project_id into Qdrant payloads for points that don't have one."""
+    DEFAULT_PROJECT_ID = "00000000-0000-0000-0000-000000000001"
+    qdrant = get_qdrant_service()
+
+    offset = None
+    updated = 0
+    while True:
+        result = await qdrant.client.scroll(
+            collection_name=qdrant.collection_name,
+            limit=100,
+            offset=offset,
+            with_payload=True,
+        )
+        points, next_offset = result
+
+        ids_to_update = [
+            p.id for p in points
+            if p.payload and "project_id" not in p.payload
+        ]
+
+        if ids_to_update:
+            await qdrant.client.set_payload(
+                collection_name=qdrant.collection_name,
+                payload={"project_id": DEFAULT_PROJECT_ID},
+                points=ids_to_update,
+            )
+            updated += len(ids_to_update)
+
+        if next_offset is None:
+            break
+        offset = next_offset
+
+    if updated:
+        logger.info(f"Backfilled project_id for {updated} Qdrant points")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
@@ -38,6 +75,8 @@ async def lifespan(app: FastAPI):
     qdrant = get_qdrant_service()
     await qdrant.ensure_collection()
     logger.info("Qdrant collection verified")
+
+    await backfill_qdrant_project_ids()
 
     llm = get_llm_service()
     status = await llm.check_available()
