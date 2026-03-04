@@ -5,8 +5,8 @@ import { useDeleteDocument } from "@/hooks/useDocuments";
 import { toast } from "sonner";
 import type { Document } from "@/lib/api";
 
-export function DocumentCard({ doc }: { doc: Document }) {
-  const deleteMutation = useDeleteDocument();
+export function DocumentCard({ doc, projectId }: { doc: Document; projectId: string }) {
+  const deleteMutation = useDeleteDocument(projectId);
 
   const statusColor =
     doc.status === "processed"
