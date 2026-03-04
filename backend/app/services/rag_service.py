@@ -23,14 +23,19 @@ class RAGService:
         self.qdrant_service = qdrant_service
         self.max_context_tokens = settings.CONTEXT_MAX_TOKENS
 
-    async def query(self, question: str, top_k: int = 10) -> dict:
+    async def query(self, question: str, top_k: int = 10, project_id: str | None = None) -> dict:
         start = time.time()
 
         query_embedding = (await self.llm_service.embed([question]))[0]
 
+        filters = None
+        if project_id:
+            filters = {"project_id": project_id}
+
         results = await self.qdrant_service.search(
             query_vector=query_embedding,
             top_k=top_k,
+            filters=filters,
         )
 
         context, citations = self._assemble_context(results)
