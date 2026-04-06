@@ -71,7 +71,11 @@ class QdrantService:
         ]
 
     async def search_by_filter(self, filters: dict, limit: int = 100) -> list[dict]:
-        """Retrieve points matching a filter (no vector query)."""
+        """Retrieve points matching a filter (no vector query).
+
+        Returns up to `limit` results from a single scroll page. Does not paginate.
+        Returns flattened dicts with id, text, document_id, title, project_id.
+        """
         must = [
             FieldCondition(key=k, match=MatchValue(value=v))
             for k, v in filters.items()

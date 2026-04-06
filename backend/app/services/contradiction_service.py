@@ -80,40 +80,44 @@ class ContradictionService:
 
         found = 0
         for chunk in chunks:
-            chunk_vector = await self.llm_service.embed([chunk["text"]])
-            similar = await self.qdrant_service.search(
-                query_vector=chunk_vector[0],
-                top_k=SIMILAR_CHUNKS_TOP_K,
-                filters={"project_id": project_id},
-            )
-
-            for match in similar:
-                match_doc_id = match["payload"].get("document_id", "")
-                if match_doc_id == document_id:
-                    continue
-
-                if await self.repo.pair_exists(chunk["id"], match["id"]):
-                    continue
-
-                classification = await self.classify_pair(
-                    chunk["text"],
-                    match["payload"]["text"],
+            try:
+                chunk_vector = await self.llm_service.embed([chunk["text"]])
+                similar = await self.qdrant_service.search(
+                    query_vector=chunk_vector[0],
+                    top_k=SIMILAR_CHUNKS_TOP_K,
+                    filters={"project_id": project_id},
                 )
 
-                if classification["is_contradiction"]:
-                    await self.repo.create(
-                        project_id=project_id,
-                        chunk_a_id=chunk["id"],
-                        chunk_b_id=match["id"],
-                        document_a_id=document_id,
-                        document_b_id=match_doc_id,
-                        document_a_title=chunk.get("title", ""),
-                        document_b_title=match["payload"].get("title", ""),
-                        chunk_a_text=chunk["text"],
-                        chunk_b_text=match["payload"]["text"],
-                        explanation=classification["explanation"],
+                for match in similar:
+                    match_doc_id = match["payload"].get("document_id", "")
+                    if match_doc_id == document_id:
+                        continue
+
+                    if await self.repo.pair_exists(chunk["id"], match["id"]):
+                        continue
+
+                    classification = await self.classify_pair(
+                        chunk["text"],
+                        match["payload"]["text"],
                     )
-                    found += 1
+
+                    if classification["is_contradiction"]:
+                        await self.repo.create(
+                            project_id=project_id,
+                            chunk_a_id=chunk["id"],
+                            chunk_b_id=match["id"],
+                            document_a_id=document_id,
+                            document_b_id=match_doc_id,
+                            document_a_title=chunk.get("title", ""),
+                            document_b_title=match["payload"].get("title", ""),
+                            chunk_a_text=chunk["text"],
+                            chunk_b_text=match["payload"]["text"],
+                            explanation=classification["explanation"],
+                        )
+                        found += 1
+            except Exception:
+                logger.exception("Failed to process chunk %s, skipping", chunk["id"])
+                continue
 
         logger.info("Scanned document %s: found %d contradictions", document_id, found)
         return found
