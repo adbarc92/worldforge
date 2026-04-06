@@ -4,10 +4,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.models.database import get_db
 from app.models.repositories import DocumentRepository
+from app.models.contradiction_repository import ContradictionRepository
 from app.services.llm import LLMService, AnthropicProvider, OpenAIProvider
 from app.services.qdrant_service import QdrantService
 from app.services.ingestion_service import IngestionService
 from app.services.rag_service import RAGService
+from app.services.contradiction_service import ContradictionService
 
 _llm_service: LLMService | None = None
 _qdrant_service: QdrantService | None = None
@@ -58,3 +60,15 @@ async def get_rag_service(
     qdrant_service: QdrantService = Depends(get_qdrant_service),
 ) -> RAGService:
     return RAGService(llm_service=llm_service, qdrant_service=qdrant_service)
+
+
+async def get_contradiction_service(
+    db: AsyncSession = Depends(get_db),
+    llm_service: LLMService = Depends(get_llm_service),
+    qdrant_service: QdrantService = Depends(get_qdrant_service),
+) -> ContradictionService:
+    return ContradictionService(
+        llm_service=llm_service,
+        qdrant_service=qdrant_service,
+        repo=ContradictionRepository(db),
+    )
