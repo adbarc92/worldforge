@@ -48,6 +48,25 @@ export interface Project {
   updated_at: string;
 }
 
+export interface Contradiction {
+  id: string;
+  chunk_a_text: string;
+  chunk_b_text: string;
+  document_a_id: string | null;
+  document_b_id: string | null;
+  document_a_title: string;
+  document_b_title: string;
+  explanation: string;
+  status: "open" | "resolved" | "dismissed";
+  created_at: string;
+  resolved_at: string | null;
+}
+
+export interface ContradictionList {
+  items: Contradiction[];
+  total: number;
+}
+
 export const api = {
   health: () => request<HealthResponse>("/health"),
 
@@ -102,6 +121,28 @@ export const api = {
       request<{ settings: SettingsResponse; health: HealthResponse }>(
         "/api/v1/settings",
         { method: "PUT", body: JSON.stringify(data) }
+      ),
+  },
+
+  contradictions: {
+    list: (projectId: string, status = "open", skip = 0, limit = 50) =>
+      request<ContradictionList>(
+        `/api/v1/projects/${projectId}/contradictions?status=${status}&skip=${skip}&limit=${limit}`
+      ),
+    scan: (projectId: string) =>
+      request<{ status: string; project_id: string }>(
+        `/api/v1/projects/${projectId}/contradictions/scan`,
+        { method: "POST" }
+      ),
+    resolve: (projectId: string, id: string) =>
+      request<{ id: string; status: string }>(
+        `/api/v1/projects/${projectId}/contradictions/${id}/resolve`,
+        { method: "PATCH" }
+      ),
+    dismiss: (projectId: string, id: string) =>
+      request<{ id: string; status: string }>(
+        `/api/v1/projects/${projectId}/contradictions/${id}/dismiss`,
+        { method: "PATCH" }
       ),
   },
 };
