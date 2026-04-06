@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import os
 import uuid
 import aiofiles
@@ -8,7 +10,10 @@ from app.models.database import get_db
 from app.models.repositories import DocumentRepository
 from app.models.project_repository import ProjectRepository
 from app.core.config import settings
-from app.dependencies import get_ingestion_service
+from app.dependencies import get_ingestion_service, get_contradiction_service
+from app.services.contradiction_service import ContradictionService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects/{project_id}/documents", tags=["documents"])
 
@@ -28,6 +33,7 @@ async def upload_document(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     ingestion_service=Depends(get_ingestion_service),
+    contradiction_service: ContradictionService = Depends(get_contradiction_service),
 ):
     await _verify_project(project_id, db)
 
@@ -47,6 +53,24 @@ async def upload_document(
     doc = await ingestion_service.process_document(
         file_path=file_path, title=title, project_id=project_id
     )
+
+    async def _scan_background():
+        try:
+            from app.models.database import async_session
+            from app.models.contradiction_repository import ContradictionRepository
+            async with async_session() as session:
+                repo = ContradictionRepository(session)
+                svc = ContradictionService(
+                    llm_service=contradiction_service.llm_service,
+                    qdrant_service=contradiction_service.qdrant_service,
+                    repo=repo,
+                )
+                count = await svc.scan_document(doc.id, project_id)
+                logger.info("Background scan for '%s' found %d contradictions", title, count)
+        except Exception:
+            logger.exception("Background contradiction scan failed for '%s'", title)
+
+    asyncio.create_task(_scan_background())
 
     return {
         "id": doc.id,
