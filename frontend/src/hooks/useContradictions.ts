@@ -29,7 +29,8 @@ export function useResolveContradiction() {
   const projectId = activeProject?.id;
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => api.contradictions.resolve(projectId!, id),
+    mutationFn: ({ id, note }: { id: string; note?: string }) =>
+      api.contradictions.resolve(projectId!, id, note),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contradictions", projectId] });
     },
@@ -41,7 +42,20 @@ export function useDismissContradiction() {
   const projectId = activeProject?.id;
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => api.contradictions.dismiss(projectId!, id),
+    mutationFn: ({ id, note }: { id: string; note?: string }) =>
+      api.contradictions.dismiss(projectId!, id, note),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contradictions", projectId] });
+    },
+  });
+}
+
+export function useReopenContradiction() {
+  const { activeProject } = useActiveProject();
+  const projectId = activeProject?.id;
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.contradictions.reopen(projectId!, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contradictions", projectId] });
     },

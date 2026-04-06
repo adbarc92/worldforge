@@ -88,13 +88,19 @@ class ContradictionRepository:
         )
         return result.scalars().first()
 
-    async def update_status(self, contradiction_id: str, status: str) -> Contradiction | None:
+    async def update_status(
+        self, contradiction_id: str, status: str, resolution_note: str | None = None
+    ) -> Contradiction | None:
         contradiction = await self.get(contradiction_id)
         if not contradiction:
             return None
         contradiction.status = status
         if status in ("resolved", "dismissed"):
             contradiction.resolved_at = datetime.utcnow()
+            contradiction.resolution_note = resolution_note
+        elif status == "open":
+            contradiction.resolved_at = None
+            contradiction.resolution_note = None
         await self.session.commit()
         await self.session.refresh(contradiction)
         return contradiction

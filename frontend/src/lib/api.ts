@@ -58,6 +58,7 @@ export interface Contradiction {
   document_b_title: string;
   explanation: string;
   status: "open" | "resolved" | "dismissed";
+  resolution_note: string | null;
   created_at: string;
   resolved_at: string | null;
 }
@@ -134,14 +135,19 @@ export const api = {
         `/api/v1/projects/${projectId}/contradictions/scan`,
         { method: "POST" }
       ),
-    resolve: (projectId: string, id: string) =>
+    resolve: (projectId: string, id: string, note?: string) =>
       request<{ id: string; status: string }>(
         `/api/v1/projects/${projectId}/contradictions/${id}/resolve`,
-        { method: "PATCH" }
+        { method: "PATCH", body: JSON.stringify({ note: note || null }) }
       ),
-    dismiss: (projectId: string, id: string) =>
+    dismiss: (projectId: string, id: string, note?: string) =>
       request<{ id: string; status: string }>(
         `/api/v1/projects/${projectId}/contradictions/${id}/dismiss`,
+        { method: "PATCH", body: JSON.stringify({ note: note || null }) }
+      ),
+    reopen: (projectId: string, id: string) =>
+      request<{ id: string; status: string }>(
+        `/api/v1/projects/${projectId}/contradictions/${id}/reopen`,
         { method: "PATCH" }
       ),
   },

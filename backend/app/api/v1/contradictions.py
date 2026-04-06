@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.database import get_db, async_session
@@ -13,6 +14,10 @@ from app.services.contradiction_service import ContradictionService
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects/{project_id}/contradictions", tags=["contradictions"])
+
+
+class ResolutionBody(BaseModel):
+    note: str | None = None
 
 
 async def _verify_project(project_id: str, db: AsyncSession):
@@ -48,6 +53,7 @@ async def list_contradictions(
                 "document_b_title": c.document_b_title,
                 "explanation": c.explanation,
                 "status": c.status,
+                "resolution_note": c.resolution_note,
                 "created_at": c.created_at.isoformat(),
                 "resolved_at": c.resolved_at.isoformat() if c.resolved_at else None,
             }
@@ -90,25 +96,41 @@ async def scan_contradictions(
 async def resolve_contradiction(
     project_id: str,
     contradiction_id: str,
+    body: ResolutionBody = ResolutionBody(),
     db: AsyncSession = Depends(get_db),
 ):
     await _verify_project(project_id, db)
     repo = ContradictionRepository(db)
-    contradiction = await repo.update_status(contradiction_id, "resolved")
+    contradiction = await repo.update_status(contradiction_id, "resolved", resolution_note=body.note)
     if not contradiction:
         raise HTTPException(status_code=404, detail="Contradiction not found")
-    return {"id": contradiction.id, "status": contradiction.status}
+    return {"id": contradiction.id, "status": contradiction.status, "resolution_note": contradiction.resolution_note}
 
 
 @router.patch("/{contradiction_id}/dismiss")
 async def dismiss_contradiction(
     project_id: str,
     contradiction_id: str,
+    body: ResolutionBody = ResolutionBody(),
     db: AsyncSession = Depends(get_db),
 ):
     await _verify_project(project_id, db)
     repo = ContradictionRepository(db)
-    contradiction = await repo.update_status(contradiction_id, "dismissed")
+    contradiction = await repo.update_status(contradiction_id, "dismissed", resolution_note=body.note)
+    if not contradiction:
+        raise HTTPException(status_code=404, detail="Contradiction not found")
+    return {"id": contradiction.id, "status": contradiction.status, "resolution_note": contradiction.resolution_note}
+
+
+@router.patch("/{contradiction_id}/reopen")
+async def reopen_contradiction(
+    project_id: str,
+    contradiction_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    await _verify_project(project_id, db)
+    repo = ContradictionRepository(db)
+    contradiction = await repo.update_status(contradiction_id, "open")
     if not contradiction:
         raise HTTPException(status_code=404, detail="Contradiction not found")
     return {"id": contradiction.id, "status": contradiction.status}

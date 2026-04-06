@@ -6,6 +6,7 @@ import {
   useScanContradictions,
   useResolveContradiction,
   useDismissContradiction,
+  useReopenContradiction,
 } from "../hooks/useContradictions";
 import { useActiveProject } from "../contexts/ProjectContext";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ export function ContradictionsPage() {
   const scan = useScanContradictions();
   const resolve = useResolveContradiction();
   const dismiss = useDismissContradiction();
+  const reopen = useReopenContradiction();
 
   const handleScan = () => {
     scan.mutate(undefined, {
@@ -74,8 +76,9 @@ export function ContradictionsPage() {
           <ContradictionCard
             key={c.id}
             contradiction={c}
-            onResolve={(id) => resolve.mutate(id)}
-            onDismiss={(id) => dismiss.mutate(id)}
+            onResolve={(id, note) => resolve.mutate({ id, note })}
+            onDismiss={(id, note) => dismiss.mutate({ id, note })}
+            onReopen={(id) => reopen.mutate(id)}
           />
         ))}
       </div>
