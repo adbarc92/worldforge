@@ -50,3 +50,4 @@ async def get_db():
 
 
 import app.models.contradiction  # noqa: F401
+import app.models.synthesis  # noqa: F401
