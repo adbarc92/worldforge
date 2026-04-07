@@ -41,7 +41,7 @@ export function ContradictionCard({ contradiction, onResolve, onDismiss, onReope
     });
   };
 
-  const selectedClass = "ring-2 ring-primary";
+  const selectedClass = "ring-2 ring-primary bg-primary/10";
 
   return (
     <Card>
@@ -49,23 +49,33 @@ export function ContradictionCard({ contradiction, onResolve, onDismiss, onReope
         <div className="grid grid-cols-2 gap-4 mb-4">
           <button
             type="button"
-            className={`text-left rounded p-3 bg-muted transition-all ${
+            className={`relative text-left rounded p-3 bg-muted transition-all ${
               contradiction.status === "open" ? "cursor-pointer hover:ring-1 hover:ring-primary/50" : ""
             } ${selection === "a" || selection === "both" ? selectedClass : ""}`}
             onClick={() => contradiction.status === "open" && toggleSelection("a")}
             disabled={contradiction.status !== "open"}
           >
+            {(selection === "a" || selection === "both") && (
+              <span className="absolute top-1.5 right-2 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                Canon
+              </span>
+            )}
             <p className="text-xs font-medium text-muted-foreground mb-1">{labelA}</p>
             <p className="text-sm">{contradiction.chunk_a_text}</p>
           </button>
           <button
             type="button"
-            className={`text-left rounded p-3 bg-muted transition-all ${
+            className={`relative text-left rounded p-3 bg-muted transition-all ${
               contradiction.status === "open" ? "cursor-pointer hover:ring-1 hover:ring-primary/50" : ""
             } ${selection === "b" || selection === "both" ? selectedClass : ""}`}
             onClick={() => contradiction.status === "open" && toggleSelection("b")}
             disabled={contradiction.status !== "open"}
           >
+            {(selection === "b" || selection === "both") && (
+              <span className="absolute top-1.5 right-2 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                Canon
+              </span>
+            )}
             <p className="text-xs font-medium text-muted-foreground mb-1">{labelB}</p>
             <p className="text-sm">{contradiction.chunk_b_text}</p>
           </button>
