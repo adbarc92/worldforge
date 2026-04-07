@@ -168,6 +168,11 @@ export const api = {
         `/api/v1/projects/${projectId}/contradictions/${id}/reopen`,
         { method: "PATCH" }
       ),
+    bulk: (projectId: string, ids: string[], status: "resolved" | "dismissed", note?: string) =>
+      request<{ updated: number; status: string }>(
+        `/api/v1/projects/${projectId}/contradictions/bulk`,
+        { method: "POST", body: JSON.stringify({ ids, status, note: note || null }) }
+      ),
   },
 
   synthesis: {

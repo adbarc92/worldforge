@@ -61,3 +61,16 @@ export function useReopenContradiction() {
     },
   });
 }
+
+export function useBulkUpdateContradictions() {
+  const { activeProject } = useActiveProject();
+  const projectId = activeProject?.id;
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, status, note }: { ids: string[]; status: "resolved" | "dismissed"; note?: string }) =>
+      api.contradictions.bulk(projectId!, ids, status, note),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contradictions", projectId] });
+    },
+  });
+}

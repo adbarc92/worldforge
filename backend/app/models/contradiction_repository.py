@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 
 from sqlalchemy import select, func, or_, and_
@@ -104,3 +106,14 @@ class ContradictionRepository:
         await self.session.commit()
         await self.session.refresh(contradiction)
         return contradiction
+
+    async def bulk_update_status(
+        self, ids: list[str], status: str, resolution_note: str | None = None
+    ) -> int:
+        """Update status for multiple contradictions. Returns count updated."""
+        updated = 0
+        for cid in ids:
+            result = await self.update_status(cid, status, resolution_note=resolution_note)
+            if result:
+                updated += 1
+        return updated

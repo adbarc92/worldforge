@@ -20,6 +20,12 @@ class ResolutionBody(BaseModel):
     note: str | None = None
 
 
+class BulkResolutionBody(BaseModel):
+    ids: list[str]
+    status: str  # "resolved" or "dismissed"
+    note: str | None = None
+
+
 async def _verify_project(project_id: str, db: AsyncSession):
     """Verify project exists, raise 404 if not."""
     repo = ProjectRepository(db)
@@ -134,3 +140,17 @@ async def reopen_contradiction(
     if not contradiction:
         raise HTTPException(status_code=404, detail="Contradiction not found")
     return {"id": contradiction.id, "status": contradiction.status}
+
+
+@router.post("/bulk")
+async def bulk_update_contradictions(
+    project_id: str,
+    body: BulkResolutionBody,
+    db: AsyncSession = Depends(get_db),
+):
+    await _verify_project(project_id, db)
+    if body.status not in ("resolved", "dismissed"):
+        raise HTTPException(status_code=400, detail="Status must be 'resolved' or 'dismissed'")
+    repo = ContradictionRepository(db)
+    count = await repo.bulk_update_status(body.ids, body.status, resolution_note=body.note)
+    return {"updated": count, "status": body.status}
