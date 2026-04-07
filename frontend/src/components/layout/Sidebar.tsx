@@ -6,6 +6,7 @@ const links = [
   { to: "/", label: "Chat", icon: "\uD83D\uDCAC" },
   { to: "/documents", label: "Documents", icon: "\uD83D\uDCC4" },
   { to: "/contradictions", label: "Contradictions", icon: "\u26A0\uFE0F" },
+  { to: "/synthesis", label: "Synthesis", icon: "\uD83D\uDCD6" },
   { to: "/projects", label: "Projects", icon: "\uD83D\uDCC1" },
   { to: "/settings", label: "Settings", icon: "\u2699\uFE0F" },
 ];
