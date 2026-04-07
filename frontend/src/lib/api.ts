@@ -68,6 +68,24 @@ export interface ContradictionList {
   total: number;
 }
 
+export interface SynthesisOutlineSection {
+  title: string;
+  description: string;
+}
+
+export interface Synthesis {
+  id: string;
+  project_id: string;
+  title: string;
+  outline: SynthesisOutlineSection[] | null;
+  outline_approved: boolean;
+  content: string | null;
+  status: "outline_pending" | "outline_ready" | "generating" | "completed" | "failed";
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export const api = {
   health: () => request<HealthResponse>("/health"),
 
@@ -150,5 +168,29 @@ export const api = {
         `/api/v1/projects/${projectId}/contradictions/${id}/reopen`,
         { method: "PATCH" }
       ),
+  },
+
+  synthesis: {
+    list: (projectId: string) =>
+      request<Synthesis[]>(`/api/v1/projects/${projectId}/synthesis`),
+    get: (projectId: string, id: string) =>
+      request<Synthesis>(`/api/v1/projects/${projectId}/synthesis/${id}`),
+    create: (projectId: string, auto = false) =>
+      request<Synthesis>(
+        `/api/v1/projects/${projectId}/synthesis?auto=${auto}`,
+        { method: "POST" }
+      ),
+    updateOutline: (projectId: string, id: string, outline: SynthesisOutlineSection[]) =>
+      request<Synthesis>(
+        `/api/v1/projects/${projectId}/synthesis/${id}/outline`,
+        { method: "PATCH", body: JSON.stringify({ outline }) }
+      ),
+    approve: (projectId: string, id: string) =>
+      request<{ id: string; status: string }>(
+        `/api/v1/projects/${projectId}/synthesis/${id}/approve`,
+        { method: "POST" }
+      ),
+    download: (projectId: string, id: string) =>
+      `/api/v1/projects/${projectId}/synthesis/${id}/download`,
   },
 };
