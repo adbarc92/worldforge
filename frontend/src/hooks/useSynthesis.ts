@@ -10,6 +10,13 @@ export function useSyntheses() {
     queryKey: ["syntheses", projectId],
     queryFn: () => api.synthesis.list(projectId!),
     enabled: !!projectId,
+    refetchInterval: (query) => {
+      const latest = query.state.data?.[0];
+      if (latest?.status === "outline_pending" || latest?.status === "generating") {
+        return 5000;
+      }
+      return false;
+    },
   });
 }
 

@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { HealthIndicator } from "./HealthIndicator";
 import { ProjectSelector } from "./ProjectSelector";
+import { useSyntheses } from "../../hooks/useSynthesis";
 
 const links = [
   { to: "/", label: "Chat", icon: "\uD83D\uDCAC" },
@@ -10,6 +11,28 @@ const links = [
   { to: "/projects", label: "Projects", icon: "\uD83D\uDCC1" },
   { to: "/settings", label: "Settings", icon: "\u2699\uFE0F" },
 ];
+
+function SynthesisStatusIcon() {
+  const { data: syntheses } = useSyntheses();
+  const latest = syntheses?.[0];
+  if (!latest) return null;
+
+  if (latest.status === "outline_pending" || latest.status === "generating") {
+    return (
+      <span className="ml-auto inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+    );
+  }
+
+  if (latest.status === "failed") {
+    return <span className="ml-auto text-xs text-destructive">✕</span>;
+  }
+
+  if (latest.status === "completed") {
+    return <span className="ml-auto text-xs text-green-500">✓</span>;
+  }
+
+  return null;
+}
 
 export function Sidebar() {
   return (
@@ -32,6 +55,7 @@ export function Sidebar() {
           >
             <span>{link.icon}</span>
             {link.label}
+            {link.to === "/synthesis" && <SynthesisStatusIcon />}
           </NavLink>
         ))}
       </nav>
