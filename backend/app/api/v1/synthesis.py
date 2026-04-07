@@ -200,3 +200,23 @@ async def download_synthesis(
         media_type="text/markdown",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.post("/{synthesis_id}/retry", status_code=202)
+async def retry_synthesis(
+    project_id: str,
+    synthesis_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Reset a stuck/failed synthesis back to outline_ready so it can be re-approved."""
+    await _verify_project(project_id, db)
+    repo = SynthesisRepository(db)
+    synthesis = await repo.get(synthesis_id)
+    if not synthesis or synthesis.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Synthesis not found")
+    if synthesis.status not in ("generating", "failed"):
+        raise HTTPException(status_code=409, detail="Can only retry generating or failed syntheses")
+    await repo.update_status(
+        synthesis_id, status="outline_ready", outline_approved=False, error_message=None
+    )
+    return {"id": synthesis_id, "status": "outline_ready"}

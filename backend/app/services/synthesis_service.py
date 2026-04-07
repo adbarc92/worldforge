@@ -10,7 +10,7 @@ from app.services.qdrant_service import QdrantService
 logger = logging.getLogger(__name__)
 
 CHUNKS_PER_BATCH = 50
-SECTION_TOP_K = 30
+SECTION_TOP_K = 15
 
 TOPIC_EXTRACTION_PROMPT = """You are analyzing passages from a worldbuilding canon. Given the following passages, list the major topics covered. Return only a comma-separated list of topic names (e.g., "Cosmogony, Major Characters, Factions, Key Events, Geography").
 
@@ -218,7 +218,12 @@ class SynthesisService:
             )
 
             sections = []
-            for section_def in synthesis.outline:
+            total = len(synthesis.outline)
+            for i, section_def in enumerate(synthesis.outline, 1):
+                logger.info(
+                    "Synthesis %s: generating section %d/%d — %s",
+                    synthesis_id, i, total, section_def["title"],
+                )
                 content = await self.generate_section(project_id, section_def)
                 sections.append(
                     {"title": section_def["title"], "content": content}

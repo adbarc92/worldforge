@@ -73,3 +73,16 @@ export function useApproveSynthesis() {
     },
   });
 }
+
+export function useRetrySynthesis() {
+  const { activeProject } = useActiveProject();
+  const projectId = activeProject?.id;
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.synthesis.retry(projectId!, id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["syntheses", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["synthesis", projectId, id] });
+    },
+  });
+}

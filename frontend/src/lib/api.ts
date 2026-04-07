@@ -195,6 +195,11 @@ export const api = {
         `/api/v1/projects/${projectId}/synthesis/${id}/approve`,
         { method: "POST" }
       ),
+    retry: (projectId: string, id: string) =>
+      request<{ id: string; status: string }>(
+        `/api/v1/projects/${projectId}/synthesis/${id}/retry`,
+        { method: "POST" }
+      ),
     download: (projectId: string, id: string) =>
       `/api/v1/projects/${projectId}/synthesis/${id}/download`,
   },

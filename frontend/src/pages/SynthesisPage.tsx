@@ -8,6 +8,7 @@ import {
   useCreateSynthesis,
   useUpdateOutline,
   useApproveSynthesis,
+  useRetrySynthesis,
 } from "../hooks/useSynthesis";
 import { useContradictions } from "../hooks/useContradictions";
 import { useActiveProject } from "../contexts/ProjectContext";
@@ -23,6 +24,7 @@ export function SynthesisPage() {
   const createSynthesis = useCreateSynthesis();
   const updateOutline = useUpdateOutline();
   const approveSynthesis = useApproveSynthesis();
+  const retrySynthesis = useRetrySynthesis();
 
   const openCount = contradictions?.total ?? 0;
   const gateBlocked = openCount > 0;
@@ -136,13 +138,25 @@ export function SynthesisPage() {
       case "generating":
         return (
           <div className="space-y-4">
-            <p className="text-muted-foreground">Generating sections...</p>
+            <div className="flex items-center gap-3">
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+              <p className="text-muted-foreground">Generating sections...</p>
+            </div>
             <OutlineEditor
               outline={synthesis.outline ?? []}
               readOnly
               onSave={() => {}}
               onApprove={() => {}}
             />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => retrySynthesis.mutate(synthesis.id, {
+                onSuccess: () => toast.info("Reset to outline review — you can re-approve to retry."),
+              })}
+            >
+              Stuck? Reset to outline
+            </Button>
           </div>
         );
 
@@ -162,7 +176,19 @@ export function SynthesisPage() {
             <p className="text-sm text-red-500">
               Synthesis failed: {synthesis.error_message || "Unknown error"}
             </p>
-            <Button onClick={() => handleCreate(false)}>Retry</Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => retrySynthesis.mutate(synthesis.id, {
+                  onSuccess: () => toast.info("Reset to outline review — edit or re-approve to retry."),
+                })}
+              >
+                Retry with same outline
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => handleCreate(false)}>
+                Start fresh
+              </Button>
+            </div>
           </div>
         );
 
