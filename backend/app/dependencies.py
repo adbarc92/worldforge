@@ -10,6 +10,8 @@ from app.services.qdrant_service import QdrantService
 from app.services.ingestion_service import IngestionService
 from app.services.rag_service import RAGService
 from app.services.contradiction_service import ContradictionService
+from app.models.synthesis_repository import SynthesisRepository
+from app.services.synthesis_service import SynthesisService
 
 _llm_service: LLMService | None = None
 _qdrant_service: QdrantService | None = None
@@ -71,4 +73,19 @@ async def get_contradiction_service(
         llm_service=llm_service,
         qdrant_service=qdrant_service,
         repo=ContradictionRepository(db),
+    )
+
+
+async def get_synthesis_service(
+    db: AsyncSession = Depends(get_db),
+    llm_service: LLMService = Depends(get_llm_service),
+    qdrant_service: QdrantService = Depends(get_qdrant_service),
+) -> SynthesisService:
+    contradiction_repo = ContradictionRepository(db)
+    synthesis_repo = SynthesisRepository(db)
+    return SynthesisService(
+        llm_service=llm_service,
+        qdrant_service=qdrant_service,
+        contradiction_repo=contradiction_repo,
+        synthesis_repo=synthesis_repo,
     )
