@@ -239,8 +239,10 @@ Replace stale `claude-3-5-sonnet-20241022` with the current Claude Sonnet model 
 - `docs/superpowers/specs/2026-04-04-contradiction-detection-design.md`
 - `docs/superpowers/plans/*` (any others in the directory)
 - `docs/superpowers/specs/2026-04-05-world-synthesis-design.md`
-- This design doc (`docs/superpowers/specs/2026-04-10-open-source-polish-design.md`)
 - `scripts/bulk_upload.py`
+
+(This design doc is already committed in its own commit prior to implementation.)
+
 - `.gitignore` update
 
 ### NOT committed
