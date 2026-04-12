@@ -223,7 +223,7 @@ describe("api.contradictions", () => {
   });
 
   it("resolve sends null note when omitted", async () => {
-    let receivedBody: { note?: string | null } = {};
+    let receivedBody: { note: string | null } = { note: null };
     server.use(
       http.patch("/api/v1/projects/:pid/contradictions/:id/resolve", async ({ request }) => {
         receivedBody = (await request.json()) as { note: string | null };
@@ -234,9 +234,28 @@ describe("api.contradictions", () => {
     expect(receivedBody.note).toBeNull();
   });
 
-  it("dismiss sends PATCH", async () => {
-    const result = await api.contradictions.dismiss("proj-1", "contra-1");
-    expect(result.status).toBe("dismissed");
+  it("dismiss sends note", async () => {
+    let receivedBody: unknown;
+    server.use(
+      http.patch("/api/v1/projects/:pid/contradictions/:id/dismiss", async ({ request }) => {
+        receivedBody = await request.json();
+        return HttpResponse.json({ id: "contra-1", status: "dismissed" });
+      }),
+    );
+    await api.contradictions.dismiss("proj-1", "contra-1", "not a real contradiction");
+    expect(receivedBody).toEqual({ note: "not a real contradiction" });
+  });
+
+  it("dismiss sends null note when omitted", async () => {
+    let receivedBody: { note: string | null } = { note: null };
+    server.use(
+      http.patch("/api/v1/projects/:pid/contradictions/:id/dismiss", async ({ request }) => {
+        receivedBody = (await request.json()) as { note: string | null };
+        return HttpResponse.json({ id: "contra-1", status: "dismissed" });
+      }),
+    );
+    await api.contradictions.dismiss("proj-1", "contra-1");
+    expect(receivedBody.note).toBeNull();
   });
 
   it("reopen sends PATCH", async () => {
@@ -254,6 +273,18 @@ describe("api.contradictions", () => {
     );
     await api.contradictions.bulk("proj-1", ["a", "b"], "resolved", "batch");
     expect(receivedBody).toEqual({ ids: ["a", "b"], status: "resolved", note: "batch" });
+  });
+
+  it("bulk sends null note when omitted", async () => {
+    let receivedBody: { note: string | null } = { note: null };
+    server.use(
+      http.post("/api/v1/projects/:pid/contradictions/bulk", async ({ request }) => {
+        receivedBody = (await request.json()) as { note: string | null };
+        return HttpResponse.json({ updated: 2, status: "dismissed" });
+      }),
+    );
+    await api.contradictions.bulk("proj-1", ["a", "b"], "dismissed");
+    expect(receivedBody.note).toBeNull();
   });
 });
 
