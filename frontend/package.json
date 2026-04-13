@@ -1,7 +1,15 @@
 {
-  "name": "frontend",
+  "name": "worldforge-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "React frontend for WorldForge, a RAG-powered worldbuilding knowledge system",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adbarc92/worldforge.git",
+    "directory": "frontend"
+  },
+  "license": "MIT",
+  "author": "Alex Barclay",
   "type": "module",
   "scripts": {
     "dev": "vite",
