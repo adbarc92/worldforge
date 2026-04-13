@@ -1,11 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import { renderWithProviders, userEvent, seedActiveProject } from "@/test/test-utils";
 import { ChatPage } from "./ChatPage";
-
-beforeEach(() => {
-  Element.prototype.scrollIntoView = vi.fn();
-});
 
 describe("ChatPage", () => {
   it("prompts to select a project when no project is active", () => {

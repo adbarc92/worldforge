@@ -1,13 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import { renderWithProviders, userEvent } from "@/test/test-utils";
 import { ChatView } from "./ChatView";
 import type { ChatMessage } from "@/hooks/useChat";
-
-beforeEach(() => {
-  // jsdom doesn't implement scrollIntoView
-  Element.prototype.scrollIntoView = vi.fn();
-});
 
 describe("ChatView", () => {
   it("shows empty-state prompt when there are no messages", () => {

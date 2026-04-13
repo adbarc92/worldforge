@@ -5,7 +5,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/mocks/server";
-import { createTestQueryClient } from "@/test/test-utils";
+import { createTestQueryClient, seedActiveProject } from "@/test/test-utils";
 import { ProjectProvider } from "@/contexts/ProjectContext";
 import {
   useContradictions,
@@ -15,24 +15,6 @@ import {
   useReopenContradiction,
   useBulkUpdateContradictions,
 } from "./useContradictions";
-
-const STORAGE_KEY = "canon-builder-active-project";
-const activeProject = {
-  id: "proj-1",
-  name: "Test Project",
-  description: null,
-  document_count: 0,
-  created_at: "2026-01-01T00:00:00Z",
-  updated_at: "2026-01-01T00:00:00Z",
-};
-
-function seedActiveProject() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(activeProject));
-}
-
-function clearActiveProject() {
-  localStorage.removeItem(STORAGE_KEY);
-}
 
 function makeWrapper(qc: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -50,7 +32,7 @@ beforeEach(() => {
 
 describe("useContradictions", () => {
   it("fetches contradictions for the active project with default status", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     const qc = createTestQueryClient();
     const { result } = renderHook(() => useContradictions(), {
       wrapper: makeWrapper(qc),
@@ -61,7 +43,7 @@ describe("useContradictions", () => {
   });
 
   it("passes the status argument through to the API", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     let receivedStatus: string | null = null;
     server.use(
       http.get("/api/v1/projects/:pid/contradictions", ({ request }) => {
@@ -79,7 +61,7 @@ describe("useContradictions", () => {
   });
 
   it("is disabled when no active project is set", () => {
-    clearActiveProject();
+    // localStorage already cleared in beforeEach — no seed needed
     const qc = createTestQueryClient();
     const { result } = renderHook(() => useContradictions(), {
       wrapper: makeWrapper(qc),
@@ -88,7 +70,7 @@ describe("useContradictions", () => {
   });
 
   it("propagates errors", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     server.use(
       http.get("/api/v1/projects/:pid/contradictions", () =>
         HttpResponse.json({ detail: "boom" }, { status: 500 }),
@@ -105,7 +87,7 @@ describe("useContradictions", () => {
 
 describe("useScanContradictions", () => {
   it("scans and invalidates contradictions queries", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     const qc = createTestQueryClient();
     const spy = vi.spyOn(qc, "invalidateQueries");
     const { result } = renderHook(() => useScanContradictions(), {
@@ -122,7 +104,7 @@ describe("useScanContradictions", () => {
 
 describe("useResolveContradiction", () => {
   it("resolves and invalidates contradictions queries", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     const qc = createTestQueryClient();
     const spy = vi.spyOn(qc, "invalidateQueries");
     const { result } = renderHook(() => useResolveContradiction(), {
@@ -137,7 +119,7 @@ describe("useResolveContradiction", () => {
   });
 
   it("propagates resolve errors", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     server.use(
       http.patch("/api/v1/projects/:pid/contradictions/:id/resolve", () =>
         HttpResponse.json({ detail: "cannot resolve" }, { status: 409 }),
@@ -155,7 +137,7 @@ describe("useResolveContradiction", () => {
 
 describe("useDismissContradiction", () => {
   it("dismisses and invalidates contradictions queries", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     const qc = createTestQueryClient();
     const spy = vi.spyOn(qc, "invalidateQueries");
     const { result } = renderHook(() => useDismissContradiction(), {
@@ -172,7 +154,7 @@ describe("useDismissContradiction", () => {
 
 describe("useReopenContradiction", () => {
   it("reopens and invalidates contradictions queries", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     const qc = createTestQueryClient();
     const spy = vi.spyOn(qc, "invalidateQueries");
     const { result } = renderHook(() => useReopenContradiction(), {
@@ -189,7 +171,7 @@ describe("useReopenContradiction", () => {
 
 describe("useBulkUpdateContradictions", () => {
   it("bulk updates and invalidates contradictions queries", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     const qc = createTestQueryClient();
     const spy = vi.spyOn(qc, "invalidateQueries");
     const { result } = renderHook(() => useBulkUpdateContradictions(), {

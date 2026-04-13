@@ -1,6 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import { renderWithProviders, userEvent } from "@/test/test-utils";
+import { http, HttpResponse } from "msw";
+import { server } from "@/test/mocks/server";
 import { DocumentCard } from "./DocumentCard";
 import type { Document } from "@/lib/api";
 
@@ -13,11 +15,15 @@ const doc: Document = {
   created_at: "2026-01-01T00:00:00Z",
 };
 
-beforeEach(() => {
-  vi.spyOn(window, "confirm").mockReturnValue(true);
-});
-
 describe("DocumentCard", () => {
+  beforeEach(() => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("renders title, status badge, and chunk count", () => {
     renderWithProviders(<DocumentCard doc={doc} projectId="proj-1" />);
     expect(screen.getByText("The Great Chronicle")).toBeInTheDocument();
@@ -36,11 +42,21 @@ describe("DocumentCard", () => {
   });
 
   it("invokes the delete mutation when user confirms deletion", async () => {
+    let deleteCalled = false;
+    server.use(
+      http.delete("/api/v1/projects/:pid/documents/:id", () => {
+        deleteCalled = true;
+        return HttpResponse.json({ status: "deleted" });
+      }),
+    );
+
     const user = userEvent.setup();
     renderWithProviders(<DocumentCard doc={doc} projectId="proj-1" />);
     await user.click(screen.getByRole("button", { name: /delete/i }));
+
+    expect(window.confirm).toHaveBeenCalled();
     await waitFor(() => {
-      expect(window.confirm).toHaveBeenCalled();
+      expect(deleteCalled).toBe(true);
     });
   });
 });

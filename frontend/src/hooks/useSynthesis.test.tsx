@@ -5,7 +5,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/mocks/server";
-import { createTestQueryClient } from "@/test/test-utils";
+import { createTestQueryClient, seedActiveProject } from "@/test/test-utils";
 import { ProjectProvider } from "@/contexts/ProjectContext";
 import {
   useSyntheses,
@@ -15,20 +15,6 @@ import {
   useApproveSynthesis,
   useRetrySynthesis,
 } from "./useSynthesis";
-
-const STORAGE_KEY = "canon-builder-active-project";
-const activeProject = {
-  id: "proj-1",
-  name: "Test Project",
-  description: null,
-  document_count: 0,
-  created_at: "2026-01-01T00:00:00Z",
-  updated_at: "2026-01-01T00:00:00Z",
-};
-
-function seedActiveProject() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(activeProject));
-}
 
 function makeWrapper(qc: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -46,7 +32,7 @@ beforeEach(() => {
 
 describe("useSyntheses", () => {
   it("fetches syntheses for the active project", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     const qc = createTestQueryClient();
     const { result } = renderHook(() => useSyntheses(), {
       wrapper: makeWrapper(qc),
@@ -65,7 +51,7 @@ describe("useSyntheses", () => {
   });
 
   it("propagates list errors", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     server.use(
       http.get("/api/v1/projects/:pid/synthesis", () =>
         HttpResponse.json({ detail: "boom" }, { status: 500 }),
@@ -82,7 +68,7 @@ describe("useSyntheses", () => {
 
 describe("useSynthesis", () => {
   it("fetches a single synthesis by id", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     const qc = createTestQueryClient();
     const { result } = renderHook(() => useSynthesis("synth-1"), {
       wrapper: makeWrapper(qc),
@@ -92,7 +78,7 @@ describe("useSynthesis", () => {
   });
 
   it("is disabled when id is null", () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     const qc = createTestQueryClient();
     const { result } = renderHook(() => useSynthesis(null), {
       wrapper: makeWrapper(qc),
@@ -111,7 +97,7 @@ describe("useSynthesis", () => {
 
 describe("useCreateSynthesis", () => {
   it("creates a synthesis and invalidates the syntheses list", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     const qc = createTestQueryClient();
     const spy = vi.spyOn(qc, "invalidateQueries");
     const { result } = renderHook(() => useCreateSynthesis(), {
@@ -124,7 +110,7 @@ describe("useCreateSynthesis", () => {
   });
 
   it("passes the auto flag through as a query param", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     let receivedAuto: string | null = null;
     server.use(
       http.post("/api/v1/projects/:pid/synthesis", ({ request }) => {
@@ -155,7 +141,7 @@ describe("useCreateSynthesis", () => {
   });
 
   it("propagates create errors", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     server.use(
       http.post("/api/v1/projects/:pid/synthesis", () =>
         HttpResponse.json({ detail: "no docs" }, { status: 400 }),
@@ -171,7 +157,7 @@ describe("useCreateSynthesis", () => {
 
 describe("useUpdateOutline", () => {
   it("updates the outline and invalidates the specific synthesis query", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     const qc = createTestQueryClient();
     const spy = vi.spyOn(qc, "invalidateQueries");
     const { result } = renderHook(() => useUpdateOutline(), {
@@ -191,7 +177,7 @@ describe("useUpdateOutline", () => {
 
 describe("useApproveSynthesis", () => {
   it("approves and invalidates the specific synthesis query", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     const qc = createTestQueryClient();
     const spy = vi.spyOn(qc, "invalidateQueries");
     const { result } = renderHook(() => useApproveSynthesis(), {
@@ -208,7 +194,7 @@ describe("useApproveSynthesis", () => {
 
 describe("useRetrySynthesis", () => {
   it("retries and invalidates both syntheses list and specific synthesis", async () => {
-    seedActiveProject();
+    seedActiveProject({ id: "proj-1", name: "Test Project" });
     const qc = createTestQueryClient();
     const spy = vi.spyOn(qc, "invalidateQueries");
     const { result } = renderHook(() => useRetrySynthesis(), {
