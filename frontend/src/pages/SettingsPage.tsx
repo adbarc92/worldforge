@@ -31,6 +31,7 @@ export function SettingsPage() {
   const handleSave = () => {
     update.mutate(form, {
       onSuccess: (result) => {
+        setOverrides({});
         const status = result.health.status;
         if (status === "healthy") {
           toast.success("Settings saved — all services connected");
