@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { OutlineEditor } from "../components/synthesis/OutlineEditor";
 import { SynthesisViewer } from "../components/synthesis/SynthesisViewer";
@@ -17,6 +17,7 @@ import { toast } from "sonner";
 export function SynthesisPage() {
   const { activeProject } = useActiveProject();
   const [activeSynthesisId, setActiveSynthesisId] = useState<string | null>(null);
+  const [prevProjectId, setPrevProjectId] = useState<string | undefined>(activeProject?.id);
 
   const { data: syntheses } = useSyntheses();
   const { data: synthesis } = useSynthesis(activeSynthesisId);
@@ -29,17 +30,16 @@ export function SynthesisPage() {
   const openCount = contradictions?.total ?? 0;
   const gateBlocked = openCount > 0;
 
-  // Auto-select the most recent synthesis
-  useEffect(() => {
-    if (syntheses && syntheses.length > 0 && !activeSynthesisId) {
-      setActiveSynthesisId(syntheses[0].id);
-    }
-  }, [syntheses, activeSynthesisId]);
-
-  // Reset when project changes
-  useEffect(() => {
+  // Reset when project changes (state-based comparison during render)
+  if (activeProject?.id !== prevProjectId) {
+    setPrevProjectId(activeProject?.id);
     setActiveSynthesisId(null);
-  }, [activeProject?.id]);
+  }
+
+  // Auto-select the most recent synthesis
+  if (syntheses && syntheses.length > 0 && !activeSynthesisId && activeProject?.id === prevProjectId) {
+    setActiveSynthesisId(syntheses[0].id);
+  }
 
   if (!activeProject) {
     return (

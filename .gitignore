@@ -63,6 +63,7 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+coverage/
 .tox/
 .hypothesis/
 
@@ -111,3 +112,5 @@ ollama_data/
 openwebui_data/
 prometheus_data/
 grafana_data/
+
+test-docs*
