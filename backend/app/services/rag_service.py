@@ -1,7 +1,6 @@
 import time
 
 import tiktoken
-from loguru import logger
 
 from app.core.config import settings
 from app.services.llm.service import LLMService

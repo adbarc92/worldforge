@@ -4,9 +4,7 @@ Query engine for semantic search using LlamaIndex and ChromaDB.
 
 from typing import Dict, List, Optional, Any
 import chromadb
-from llama_index.core import VectorStoreIndex, StorageContext, Settings
-from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.schema import TextNode, NodeWithScore
+from llama_index.core import StorageContext, Settings
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -4,7 +4,6 @@ Citation generation and formatting utilities.
 
 from typing import List, Dict, Any, Optional
 import re
-from datetime import datetime
 
 
 class CitationGenerator:
@@ -230,7 +229,6 @@ class CitationGenerator:
             number = citation.get("number")
             title = citation.get("document_title", "Unknown")
             page = citation.get("page_number")
-            doc_id = citation.get("document_id")
 
             source_text = f"{title}"
             if page:

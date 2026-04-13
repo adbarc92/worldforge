@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, Text, Integer, Float, Boolean, DateTime, ForeignKey, JSON
+from sqlalchemy import String, Text, Integer, DateTime, ForeignKey
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -49,5 +49,5 @@ async def get_db():
         yield session
 
 
-import app.models.contradiction  # noqa: F401
-import app.models.synthesis  # noqa: F401
+import app.models.contradiction  # noqa: F401, E402
+import app.models.synthesis  # noqa: F401, E402

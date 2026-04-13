@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.database import get_db, async_session
 from app.models.contradiction_repository import ContradictionRepository
 from app.models.project_repository import ProjectRepository
-from app.dependencies import get_contradiction_service, get_llm_service, get_qdrant_service
+from app.dependencies import get_llm_service, get_qdrant_service
 from app.services.contradiction_service import ContradictionService
 
 logger = logging.getLogger(__name__)

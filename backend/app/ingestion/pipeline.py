@@ -4,10 +4,8 @@ Main entry point for processing uploaded documents.
 """
 
 import logging
-import os
 import uuid
 from datetime import datetime
-from typing import Dict, List, Optional
 from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -248,7 +246,7 @@ class IngestionPipeline:
 
             # SQLite cascading deletes will handle chunks
             # Just delete the document
-            from sqlalchemy import select, delete
+            from sqlalchemy import delete
             await db.execute(
                 delete(Document).where(Document.id == document_id)
             )

@@ -8,7 +8,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from backend.app.database.models import Entity, ProposedContent, Conflict, Document
+from backend.app.database.models import Entity, ProposedContent, Conflict
 from backend.app.consistency.similarity import SimilarityEngine
 from backend.app.llm.provider import get_llm_provider
 from backend.app.llm.prompts import CONTRADICTION_DETECTION_PROMPT
@@ -268,7 +268,7 @@ class InconsistencyDetector:
             is_contradiction = result.get("is_contradiction", False)
             return is_contradiction, result
 
-        except Exception as e:
+        except Exception:
             # Fallback to unstructured response
             response = await self.llm_provider.generate(
                 prompt=prompt,

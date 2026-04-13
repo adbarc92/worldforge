@@ -6,7 +6,6 @@ Creates vector embeddings for semantic search.
 import logging
 from typing import List, Union
 from sentence_transformers import SentenceTransformer
-import numpy as np
 
 from ..config import settings
 
