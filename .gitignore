@@ -114,3 +114,9 @@ prometheus_data/
 grafana_data/
 
 test-docs*
+
+# Local Claude Code settings
+.claude/
+
+# Internal launch material
+docs/LAUNCH_TWEETS.md
