@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend
+    uses: ./.github/workflows/backend.yml
+
+  frontend:
+    name: Frontend
+    uses: ./.github/workflows/frontend.yml
+
+  docker:
+    name: Docker
+    uses: ./.github/workflows/docker.yml
+    permissions:
+      contents: read
+      packages: write
