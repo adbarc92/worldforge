@@ -264,3 +264,53 @@ async def test_download_rejected_incomplete(mock_db, mock_project):
             app.dependency_overrides.clear()
 
     assert resp.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_retry_failed_synthesis(mock_db, mock_project):
+    """POST /synthesis/{id}/retry resets a failed synthesis to outline_ready."""
+    synthesis = _make_synthesis(status="failed", error_message="LLM timeout")
+
+    with (
+        patch.object(ProjectRepository, "get", return_value=mock_project),
+        patch("app.api.v1.synthesis.SynthesisRepository") as MockSynthRepo,
+    ):
+        synth_instance = MockSynthRepo.return_value
+        synth_instance.get = AsyncMock(return_value=synthesis)
+        synth_instance.update_status = AsyncMock()
+
+        app.dependency_overrides[get_db] = lambda: mock_db
+        try:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.post(f"{BASE_URL}/{SYNTHESIS_ID}/retry")
+        finally:
+            app.dependency_overrides.clear()
+
+    assert resp.status_code == 202
+    data = resp.json()
+    assert data["id"] == SYNTHESIS_ID
+    assert data["status"] == "outline_ready"
+
+
+@pytest.mark.asyncio
+async def test_retry_wrong_state_returns_409(mock_db, mock_project):
+    """POST /synthesis/{id}/retry returns 409 when synthesis is not retriable."""
+    synthesis = _make_synthesis(status="outline_ready")
+
+    with (
+        patch.object(ProjectRepository, "get", return_value=mock_project),
+        patch("app.api.v1.synthesis.SynthesisRepository") as MockSynthRepo,
+    ):
+        synth_instance = MockSynthRepo.return_value
+        synth_instance.get = AsyncMock(return_value=synthesis)
+
+        app.dependency_overrides[get_db] = lambda: mock_db
+        try:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.post(f"{BASE_URL}/{SYNTHESIS_ID}/retry")
+        finally:
+            app.dependency_overrides.clear()
+
+    assert resp.status_code == 409

@@ -170,3 +170,97 @@ async def test_resolve_nonexistent_returns_404(mock_db, mock_project):
 
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Contradiction not found"
+
+
+@pytest.mark.asyncio
+async def test_reopen_contradiction(mock_db, mock_project):
+    """PATCH /contradictions/{id}/reopen returns updated status."""
+    reopened = _make_contradiction(status="open", resolved_at=None)
+
+    with (
+        patch.object(ProjectRepository, "get", return_value=mock_project),
+        patch("app.api.v1.contradictions.ContradictionRepository") as MockRepo,
+    ):
+        repo_instance = MockRepo.return_value
+        repo_instance.update_status = AsyncMock(return_value=reopened)
+
+        app.dependency_overrides[get_db] = lambda: mock_db
+        try:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.patch(f"{BASE_URL}/{CONTRADICTION_ID}/reopen")
+        finally:
+            app.dependency_overrides.clear()
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["id"] == CONTRADICTION_ID
+    assert data["status"] == "open"
+
+
+@pytest.mark.asyncio
+async def test_reopen_nonexistent_returns_404(mock_db, mock_project):
+    """PATCH /contradictions/{id}/reopen returns 404 when not found."""
+    with (
+        patch.object(ProjectRepository, "get", return_value=mock_project),
+        patch("app.api.v1.contradictions.ContradictionRepository") as MockRepo,
+    ):
+        repo_instance = MockRepo.return_value
+        repo_instance.update_status = AsyncMock(return_value=None)
+
+        app.dependency_overrides[get_db] = lambda: mock_db
+        try:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.patch(f"{BASE_URL}/nonexistent-id/reopen")
+        finally:
+            app.dependency_overrides.clear()
+
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Contradiction not found"
+
+
+@pytest.mark.asyncio
+async def test_bulk_update_contradictions(mock_db, mock_project):
+    """POST /contradictions/bulk resolves multiple contradictions."""
+    with (
+        patch.object(ProjectRepository, "get", return_value=mock_project),
+        patch("app.api.v1.contradictions.ContradictionRepository") as MockRepo,
+    ):
+        repo_instance = MockRepo.return_value
+        repo_instance.bulk_update_status = AsyncMock(return_value=2)
+
+        app.dependency_overrides[get_db] = lambda: mock_db
+        try:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.post(
+                    f"{BASE_URL}/bulk",
+                    json={"ids": ["c1", "c2"], "status": "resolved", "note": "batch fix"},
+                )
+        finally:
+            app.dependency_overrides.clear()
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["updated"] == 2
+    assert data["status"] == "resolved"
+
+
+@pytest.mark.asyncio
+async def test_bulk_update_invalid_status(mock_db, mock_project):
+    """POST /contradictions/bulk rejects invalid status values."""
+    with patch.object(ProjectRepository, "get", return_value=mock_project):
+        app.dependency_overrides[get_db] = lambda: mock_db
+        try:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.post(
+                    f"{BASE_URL}/bulk",
+                    json={"ids": ["c1"], "status": "invalid_status"},
+                )
+        finally:
+            app.dependency_overrides.clear()
+
+    assert resp.status_code == 400
+    assert "resolved" in resp.json()["detail"] or "dismissed" in resp.json()["detail"]
