@@ -3,8 +3,8 @@ import { useUploadDocument } from "@/hooks/useDocuments";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 
-export function UploadDropzone() {
-  const upload = useUploadDocument();
+export function UploadDropzone({ projectId }: { projectId: string }) {
+  const upload = useUploadDocument(projectId);
   const [dragging, setDragging] = useState(false);
 
   const handleFiles = useCallback(

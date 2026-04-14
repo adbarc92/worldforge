@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import os
 import uuid
 import aiofiles
@@ -6,18 +8,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.database import get_db
 from app.models.repositories import DocumentRepository
+from app.models.project_repository import ProjectRepository
 from app.core.config import settings
-from app.dependencies import get_ingestion_service
+from app.dependencies import get_ingestion_service, get_contradiction_service
+from app.services.contradiction_service import ContradictionService
 
-router = APIRouter(prefix="/documents", tags=["documents"])
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/projects/{project_id}/documents", tags=["documents"])
+
+
+async def _verify_project(project_id: str, db: AsyncSession):
+    """Verify project exists, raise 404 if not."""
+    repo = ProjectRepository(db)
+    project = await repo.get(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
 
 
 @router.post("/upload")
 async def upload_document(
+    project_id: str,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     ingestion_service=Depends(get_ingestion_service),
+    contradiction_service: ContradictionService = Depends(get_contradiction_service),
 ):
+    await _verify_project(project_id, db)
+
     ext = os.path.splitext(file.filename or "")[1].lower()
     if ext not in (".txt", ".md", ".pdf"):
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
@@ -31,24 +50,47 @@ async def upload_document(
         await f.write(content)
 
     title = file.filename or file_id
-    doc = await ingestion_service.process_document(file_path=file_path, title=title)
+    doc = await ingestion_service.process_document(
+        file_path=file_path, title=title, project_id=project_id
+    )
+
+    async def _scan_background():
+        try:
+            from app.models.database import async_session
+            from app.models.contradiction_repository import ContradictionRepository
+            async with async_session() as session:
+                repo = ContradictionRepository(session)
+                svc = ContradictionService(
+                    llm_service=contradiction_service.llm_service,
+                    qdrant_service=contradiction_service.qdrant_service,
+                    repo=repo,
+                )
+                count = await svc.scan_document(doc.id, project_id)
+                logger.info("Background scan for '%s' found %d contradictions", title, count)
+        except Exception:
+            logger.exception("Background contradiction scan failed for '%s'", title)
+
+    asyncio.create_task(_scan_background())
 
     return {
         "id": doc.id,
         "title": doc.title,
         "status": doc.status,
         "chunk_count": doc.chunk_count,
+        "project_id": project_id,
     }
 
 
 @router.get("")
 async def list_documents(
+    project_id: str,
     skip: int = 0,
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
 ):
+    await _verify_project(project_id, db)
     repo = DocumentRepository(db)
-    docs = await repo.list(skip=skip, limit=limit)
+    docs = await repo.list(project_id=project_id, skip=skip, limit=limit)
     return [
         {
             "id": d.id,
@@ -62,10 +104,11 @@ async def list_documents(
 
 
 @router.get("/{doc_id}")
-async def get_document(doc_id: str, db: AsyncSession = Depends(get_db)):
+async def get_document(project_id: str, doc_id: str, db: AsyncSession = Depends(get_db)):
+    await _verify_project(project_id, db)
     repo = DocumentRepository(db)
     doc = await repo.get(doc_id)
-    if not doc:
+    if not doc or doc.project_id != project_id:
         raise HTTPException(status_code=404, detail="Document not found")
     return {
         "id": doc.id,
@@ -80,9 +123,17 @@ async def get_document(doc_id: str, db: AsyncSession = Depends(get_db)):
 
 @router.delete("/{doc_id}")
 async def delete_document(
+    project_id: str,
     doc_id: str,
+    db: AsyncSession = Depends(get_db),
     ingestion_service=Depends(get_ingestion_service),
 ):
+    await _verify_project(project_id, db)
+    repo = DocumentRepository(db)
+    doc = await repo.get(doc_id)
+    if not doc or doc.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Document not found")
+
     deleted = await ingestion_service.delete_document(doc_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Document not found")

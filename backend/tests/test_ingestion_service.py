@@ -49,15 +49,17 @@ async def test_chunk_text():
     service.chunk_overlap = 50
 
     long_text = "This is a sentence for chunking. " * 200  # ~6600 chars, well over 512 tokens
-    chunks = service._chunk_text(long_text, document_id="doc1", title="Test Doc")
+    chunks = service._chunk_text(long_text, document_id="doc1", title="Test Doc", project_id="proj-1")
 
     assert len(chunks) > 1
-    expected_keys = {"text", "chunk_id", "document_id", "title", "chunk_index"}
+    expected_keys = {"text", "chunk_id", "document_id", "title", "chunk_index", "project_id"}
     for chunk in chunks:
         assert set(chunk.keys()) == expected_keys
         assert chunk["document_id"] == "doc1"
         assert chunk["title"] == "Test Doc"
-        assert chunk["chunk_id"].startswith("doc1_chunk_")
+        assert chunk["project_id"] == "proj-1"
+        # chunk_id is a UUID
+        assert len(chunk["chunk_id"]) == 36
 
 
 @pytest.mark.asyncio
@@ -78,9 +80,9 @@ async def test_process_document_pipeline(mock_services):
         tmp_path = f.name
 
     try:
-        result = await service.process_document(tmp_path, title="Pipeline Test")
+        result = await service.process_document(tmp_path, title="Pipeline Test", project_id="proj-1")
 
-        mock_repo.create.assert_called_once_with(title="Pipeline Test", file_path=tmp_path)
+        mock_repo.create.assert_called_once_with(title="Pipeline Test", file_path=tmp_path, project_id="proj-1")
         mock_llm.embed.assert_called_once()
         embed_arg = mock_llm.embed.call_args[0][0]
         assert isinstance(embed_arg, list)

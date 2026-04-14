@@ -6,7 +6,7 @@ Handles PDF, DOCX, Markdown, and plain text files.
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 from unstructured.partition.auto import partition
 from unstructured.partition.pdf import partition_pdf
 from unstructured.partition.docx import partition_docx

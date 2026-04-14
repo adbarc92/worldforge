@@ -80,3 +80,15 @@ async def test_qdrant_delete_by_document(service):
     points_selector = call_kwargs["points_selector"]
     assert points_selector.must[0].key == "document_id"
     assert points_selector.must[0].match.value == "doc-42"
+
+
+@pytest.mark.asyncio
+async def test_qdrant_delete_by_project(service):
+    await service.delete_by_project("proj-42")
+
+    service.client.delete.assert_awaited_once()
+    call_kwargs = service.client.delete.call_args.kwargs
+    assert call_kwargs["collection_name"] == "canon_documents"
+    points_selector = call_kwargs["points_selector"]
+    assert points_selector.must[0].key == "project_id"
+    assert points_selector.must[0].match.value == "proj-42"

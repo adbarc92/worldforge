@@ -5,7 +5,6 @@ Defines the schema for documents, entities, relationships, and review queue.
 
 import uuid
 from datetime import datetime
-from typing import Optional
 from sqlalchemy import Column, String, Integer, Float, Text, JSON, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship

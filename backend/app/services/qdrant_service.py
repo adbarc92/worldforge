@@ -70,6 +70,35 @@ class QdrantService:
             for point in results.points
         ]
 
+    async def search_by_filter(self, filters: dict, limit: int = 100) -> list[dict]:
+        """Retrieve points matching a filter (no vector query).
+
+        Returns up to `limit` results from a single scroll page. Does not paginate.
+        Returns flattened dicts with id, text, document_id, title, project_id.
+        """
+        must = [
+            FieldCondition(key=k, match=MatchValue(value=v))
+            for k, v in filters.items()
+        ]
+        query_filter = Filter(must=must)
+        points, _ = await self.client.scroll(
+            collection_name=self.collection_name,
+            scroll_filter=query_filter,
+            limit=limit,
+            with_vectors=False,
+            with_payload=True,
+        )
+        return [
+            {
+                "id": str(p.id),
+                "text": p.payload.get("text", ""),
+                "document_id": p.payload.get("document_id", ""),
+                "title": p.payload.get("title", ""),
+                "project_id": p.payload.get("project_id", ""),
+            }
+            for p in points
+        ]
+
     async def delete_by_document(self, document_id: str):
         """Delete all vectors associated with a given document_id."""
         await self.client.delete(
@@ -78,6 +107,19 @@ class QdrantService:
                 must=[
                     FieldCondition(
                         key="document_id", match=MatchValue(value=document_id)
+                    )
+                ]
+            ),
+        )
+
+    async def delete_by_project(self, project_id: str):
+        """Delete all vectors associated with a given project_id."""
+        await self.client.delete(
+            collection_name=self.collection_name,
+            points_selector=Filter(
+                must=[
+                    FieldCondition(
+                        key="project_id", match=MatchValue(value=project_id)
                     )
                 ]
             ),

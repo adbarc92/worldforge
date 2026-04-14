@@ -1,8 +1,12 @@
 [project]
 name = "canon-builder"
-version = "0.1.0"
+version = "1.0.0"
 description = "RAG-powered worldbuilding knowledge system"
 requires-python = ">=3.11"
+authors = [{ name = "Alex Barclay" }]
+license = { text = "MIT" }
+readme = "../README.md"
+keywords = ["rag", "worldbuilding", "llm", "fastapi", "qdrant"]
 dependencies = [
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
@@ -31,3 +35,7 @@ dev = [
     "pytest-cov>=4.1.0",
     "httpx>=0.26.0",
 ]
+
+[project.urls]
+Repository = "https://github.com/adbarc92/worldforge"
+Issues = "https://github.com/adbarc92/worldforge/issues"

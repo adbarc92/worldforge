@@ -9,11 +9,12 @@ class DocumentRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create(self, title: str, file_path: str) -> Document:
+    async def create(self, title: str, file_path: str, project_id: str) -> Document:
         doc = Document(
             id=str(uuid.uuid4()),
             title=title,
             file_path=file_path,
+            project_id=project_id,
             status="pending",
         )
         self.session.add(doc)
@@ -27,9 +28,13 @@ class DocumentRepository:
         )
         return result.scalars().first()
 
-    async def list(self, skip: int = 0, limit: int = 50) -> list[Document]:
+    async def list(self, project_id: str, skip: int = 0, limit: int = 50) -> list[Document]:
         result = await self.session.execute(
-            select(Document).order_by(Document.created_at.desc()).offset(skip).limit(limit)
+            select(Document)
+            .where(Document.project_id == project_id)
+            .order_by(Document.created_at.desc())
+            .offset(skip)
+            .limit(limit)
         )
         return list(result.scalars().all())
 

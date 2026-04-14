@@ -4,6 +4,9 @@ A RAG-powered worldbuilding knowledge system. Upload your documents, ask questio
 
 Single-user, self-hosted. Uses Claude for generation and OpenAI for embeddings. Chat via OpenWebUI.
 
+[![CI](https://github.com/adbarc92/worldforge/actions/workflows/ci.yml/badge.svg)](https://github.com/adbarc92/worldforge/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 ## Quick Start
 
 ```bash
@@ -43,9 +46,24 @@ uv run alembic upgrade head   # apply migrations
 
 **Service ports**: API 8080, OpenWebUI 3000, Qdrant 6333, PostgreSQL 5432
 
+## Bulk Upload
+
+WorldForge includes a helper script for loading an existing folder of `.md`, `.txt`, or `.pdf` files into a project:
+
+```bash
+cd scripts
+uv run python bulk_upload.py ./path/to/folder --project "My Worldbuilding Project"
+```
+
+The script creates the project if it doesn't exist and uploads every supported file it finds.
+
 ## Roadmap
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for future plans.
+
+## Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to set up a development environment, run tests, and submit pull requests.
 
 ## License
 

@@ -19,6 +19,7 @@ class ChatCompletionRequest(BaseModel):
     temperature: float = 0.3
     max_tokens: int = 2048
     stream: bool = False
+    project_id: str | None = None
 
 
 @router.post("/v1/chat/completions")
@@ -32,7 +33,7 @@ async def chat_completions(
     else:
         question = user_messages[-1].content
 
-    result = await rag_service.query(question=question)
+    result = await rag_service.query(question=question, project_id=request.project_id)
 
     answer = result["answer"]
     if result["citations"]:

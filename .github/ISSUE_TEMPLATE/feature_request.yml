@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement! Before filing, please check the [roadmap](../blob/main/docs/ROADMAP.md) — your idea may already be planned.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the user problem, not the solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Roadmap phase (if known)
+      options:
+        - "Not sure"
+        - "Phase 2 — Knowledge graph"
+        - "Phase 3 — Proposals & consistency"
+        - "Phase 4 — Multi-user & auth"
+        - "Phase 5 — Advanced features"

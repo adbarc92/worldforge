@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSettings, useUpdateSettings } from "@/hooks/useSettings";
 import { useHealth } from "@/hooks/useHealth";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -13,28 +13,25 @@ export function SettingsPage() {
   const { data: health } = useHealth();
   const update = useUpdateSettings();
 
-  const [form, setForm] = useState({
-    anthropic_api_key: "",
-    openai_api_key: "",
-    anthropic_model: "",
-    openai_embedding_model: "",
-  });
+  // Track local overrides; null means use server value
+  const [overrides, setOverrides] = useState<Record<string, string>>({});
   const [showKeys, setShowKeys] = useState(false);
 
-  useEffect(() => {
-    if (settings) {
-      setForm({
-        anthropic_api_key: settings.anthropic_api_key,
-        openai_api_key: settings.openai_api_key,
-        anthropic_model: settings.anthropic_model,
-        openai_embedding_model: settings.openai_embedding_model,
-      });
-    }
-  }, [settings]);
+  const form = {
+    anthropic_api_key: overrides.anthropic_api_key ?? settings?.anthropic_api_key ?? "",
+    openai_api_key: overrides.openai_api_key ?? settings?.openai_api_key ?? "",
+    anthropic_model: overrides.anthropic_model ?? settings?.anthropic_model ?? "",
+    openai_embedding_model: overrides.openai_embedding_model ?? settings?.openai_embedding_model ?? "",
+  };
+
+  const setForm = (updates: Partial<typeof form>) => {
+    setOverrides((prev) => ({ ...prev, ...updates }));
+  };
 
   const handleSave = () => {
     update.mutate(form, {
       onSuccess: (result) => {
+        setOverrides({});
         const status = result.health.status;
         if (status === "healthy") {
           toast.success("Settings saved — all services connected");
@@ -89,7 +86,7 @@ export function SettingsPage() {
               type={showKeys ? "text" : "password"}
               value={form.anthropic_api_key}
               onChange={(e) =>
-                setForm({ ...form, anthropic_api_key: e.target.value })
+                setForm({ anthropic_api_key: e.target.value })
               }
               placeholder="sk-ant-api03-..."
             />
@@ -101,7 +98,7 @@ export function SettingsPage() {
               type={showKeys ? "text" : "password"}
               value={form.openai_api_key}
               onChange={(e) =>
-                setForm({ ...form, openai_api_key: e.target.value })
+                setForm({ openai_api_key: e.target.value })
               }
               placeholder="sk-proj-..."
             />
@@ -120,7 +117,7 @@ export function SettingsPage() {
               id="anthropic_model"
               value={form.anthropic_model}
               onChange={(e) =>
-                setForm({ ...form, anthropic_model: e.target.value })
+                setForm({ anthropic_model: e.target.value })
               }
             />
           </div>
@@ -130,7 +127,7 @@ export function SettingsPage() {
               id="embedding_model"
               value={form.openai_embedding_model}
               onChange={(e) =>
-                setForm({ ...form, openai_embedding_model: e.target.value })
+                setForm({ openai_embedding_model: e.target.value })
               }
             />
           </div>

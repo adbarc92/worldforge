@@ -41,7 +41,7 @@ async def test_rag_query_returns_answer_with_citations(rag_service, llm_service,
         }
     ]
 
-    result = await rag_service.query("What is the capital of Eldoria?")
+    result = await rag_service.query("What is the capital of Eldoria?", project_id="proj-1")
 
     assert result["answer"] == "The capital of Eldoria is Sunspire."
     assert len(result["citations"]) == 1
@@ -51,7 +51,11 @@ async def test_rag_query_returns_answer_with_citations(rag_service, llm_service,
     assert "processing_time_ms" in result
 
     llm_service.embed.assert_awaited_once()
-    qdrant_service.search.assert_awaited_once()
+    qdrant_service.search.assert_awaited_once_with(
+        query_vector=[0.1, 0.2, 0.3],
+        top_k=10,
+        filters={"project_id": "proj-1"},
+    )
     llm_service.generate.assert_awaited_once()
 
 
@@ -61,10 +65,15 @@ async def test_rag_query_no_results(rag_service, llm_service, qdrant_service):
     qdrant_service.search.return_value = []
     llm_service.generate.return_value = "I couldn't find relevant information in the canon."
 
-    result = await rag_service.query("What is the population of Zarathia?")
+    result = await rag_service.query("What is the population of Zarathia?", project_id="proj-1")
 
     assert result["citations"] == []
     assert "couldn't find" in result["answer"]
     assert "processing_time_ms" in result
 
+    qdrant_service.search.assert_awaited_once_with(
+        query_vector=[0.1, 0.2, 0.3],
+        top_k=10,
+        filters={"project_id": "proj-1"},
+    )
     llm_service.generate.assert_awaited_once()

@@ -5,7 +5,6 @@ Extracts structured entities from narrative text.
 
 import logging
 from typing import List, Dict, Optional
-import json
 
 from ..llm.provider import get_llm_provider
 from ..llm.prompts import (
@@ -24,7 +23,7 @@ class EntityExtractor:
     def __init__(self):
         """Initialize entity extractor with LLM provider."""
         self.llm = get_llm_provider()
-        logger.info(f"Entity extractor initialized with LLM provider")
+        logger.info("Entity extractor initialized with LLM provider")
 
     async def extract_entities(
         self,

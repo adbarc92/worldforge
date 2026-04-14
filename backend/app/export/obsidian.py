@@ -3,7 +3,6 @@ Obsidian format export for entities and relationships.
 Generates Markdown files with wikilinks and YAML frontmatter.
 """
 
-import os
 import shutil
 import uuid
 from pathlib import Path
@@ -12,8 +11,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from backend.app.database.models import Entity, Relationship, Document
-from backend.app.config import settings
+from backend.app.database.models import Entity, Relationship
 
 
 class ObsidianExporter:

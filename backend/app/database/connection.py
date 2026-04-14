@@ -5,9 +5,7 @@ Provides session management and database initialization.
 
 import os
 from typing import AsyncGenerator
-from sqlalchemy import create_engine, event
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import sessionmaker, Session
 import chromadb
 from chromadb.config import Settings as ChromaSettings
 

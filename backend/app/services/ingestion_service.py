@@ -23,8 +23,8 @@ class IngestionService:
         self.chunk_size = settings.CHUNK_SIZE
         self.chunk_overlap = settings.CHUNK_OVERLAP
 
-    async def process_document(self, file_path: str, title: str):
-        doc = await self.document_repo.create(title=title, file_path=file_path)
+    async def process_document(self, file_path: str, title: str, project_id: str):
+        doc = await self.document_repo.create(title=title, file_path=file_path, project_id=project_id)
         try:
             await self.document_repo.update_status(doc.id, "processing")
 
@@ -32,7 +32,7 @@ class IngestionService:
             if not text.strip():
                 raise ValueError("Document is empty after text extraction")
 
-            chunks = self._chunk_text(text, document_id=doc.id, title=title)
+            chunks = self._chunk_text(text, document_id=doc.id, title=title, project_id=project_id)
             logger.info(f"Document '{title}' split into {len(chunks)} chunks")
 
             texts = [c["text"] for c in chunks]
@@ -45,6 +45,7 @@ class IngestionService:
                     "document_id": c["document_id"],
                     "title": c["title"],
                     "chunk_index": c["chunk_index"],
+                    "project_id": c["project_id"],
                 }
                 for c in chunks
             ]
@@ -79,7 +80,7 @@ class IngestionService:
         else:
             raise ValueError(f"Unsupported file format: {ext}")
 
-    def _chunk_text(self, text: str, document_id: str, title: str) -> list[dict]:
+    def _chunk_text(self, text: str, document_id: str, title: str, project_id: str) -> list[dict]:
         splitter = SentenceSplitter(
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
@@ -93,6 +94,7 @@ class IngestionService:
                 "chunk_index": i,
                 "document_id": document_id,
                 "title": title,
+                "project_id": project_id,
             }
             for i, chunk in enumerate(text_chunks)
         ]
