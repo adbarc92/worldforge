@@ -2,6 +2,21 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 
+@pytest.fixture
+def settings_snapshot():
+    """Snapshot/restore global settings to prevent test pollution."""
+    from app.core.config import settings
+    snapshot = {
+        "ANTHROPIC_API_KEY": settings.ANTHROPIC_API_KEY,
+        "OPENAI_API_KEY": settings.OPENAI_API_KEY,
+        "ANTHROPIC_MODEL": settings.ANTHROPIC_MODEL,
+        "OPENAI_EMBEDDING_MODEL": settings.OPENAI_EMBEDDING_MODEL,
+    }
+    yield settings
+    for k, v in snapshot.items():
+        setattr(settings, k, v)
+
+
 def test_mask_api_key():
     from app.api.v1.settings import mask_key
 
@@ -29,7 +44,7 @@ async def test_get_settings():
 
 
 @pytest.mark.asyncio
-async def test_put_settings_updates_and_returns_health():
+async def test_put_settings_updates_and_returns_health(settings_snapshot):
     """PUT /settings updates config and returns settings + health."""
     from httpx import AsyncClient, ASGITransport
     from app.main import app
@@ -41,9 +56,6 @@ async def test_put_settings_updates_and_returns_health():
         patch("app.api.v1.settings.get_llm_service") as mock_get_llm,
     ):
         mock_llm = MagicMock()
-        mock_llm.check_available = lambda: mock_health
-        # Make check_available a coroutine
-        import asyncio
 
         async def _check():
             return mock_health
@@ -67,12 +79,12 @@ async def test_put_settings_updates_and_returns_health():
 
 
 @pytest.mark.asyncio
-async def test_put_settings_ignores_masked_key():
+async def test_put_settings_ignores_masked_key(settings_snapshot):
     """PUT /settings ignores API keys that contain masked characters."""
     from httpx import AsyncClient, ASGITransport
     from app.main import app
-    from app.core.config import settings as app_settings
 
+    app_settings = settings_snapshot
     original_key = app_settings.ANTHROPIC_API_KEY
 
     mock_health = {"anthropic": True, "openai": True}

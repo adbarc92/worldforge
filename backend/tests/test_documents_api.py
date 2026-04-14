@@ -58,20 +58,28 @@ async def test_upload_document(mock_db, mock_project):
 
     mock_contradiction_svc = AsyncMock()
 
+    def _fake_create_task(coro, *args, **kwargs):
+        # Close the coroutine so Python doesn't emit a RuntimeWarning
+        # about it never being awaited.
+        coro.close()
+        return MagicMock()
+
     app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_ingestion_service] = lambda: mock_ingestion
     app.dependency_overrides[get_contradiction_service] = lambda: mock_contradiction_svc
     try:
         with (
             patch("app.api.v1.documents.ProjectRepository") as MockProjRepo,
-            patch("app.api.v1.documents.asyncio") as mock_asyncio,
+            patch(
+                "app.api.v1.documents.asyncio.create_task",
+                side_effect=_fake_create_task,
+            ) as mock_create_task,
             patch("app.api.v1.documents.aiofiles", new=MagicMock()),
             patch("app.api.v1.documents.os") as mock_os,
         ):
             proj_repo = MockProjRepo.return_value
             proj_repo.get = AsyncMock(return_value=mock_project)
 
-            mock_asyncio.create_task = MagicMock()
             mock_os.path.splitext = lambda f: ("test", ".md")
             mock_os.makedirs = MagicMock()
             mock_os.path.join = lambda *args: "/uploads/fake.md"
@@ -91,6 +99,7 @@ async def test_upload_document(mock_db, mock_project):
     assert data["title"] == "test.md"
     assert data["status"] == "ready"
     assert data["project_id"] == PROJECT_ID
+    mock_create_task.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -266,3 +275,32 @@ async def test_delete_document(mock_db, mock_project):
     assert resp.status_code == 200
     assert resp.json()["status"] == "deleted"
     mock_ingestion.delete_document.assert_awaited_once_with(DOC_ID)
+
+
+@pytest.mark.asyncio
+async def test_delete_document_not_found(mock_db, mock_project):
+    """DELETE /documents/{id} returns 404 when document doesn't exist."""
+    mock_ingestion = AsyncMock()
+
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_ingestion_service] = lambda: mock_ingestion
+    try:
+        with (
+            patch("app.api.v1.documents.ProjectRepository") as MockProjRepo,
+            patch("app.api.v1.documents.DocumentRepository") as MockDocRepo,
+        ):
+            proj_repo = MockProjRepo.return_value
+            proj_repo.get = AsyncMock(return_value=mock_project)
+
+            doc_repo = MockDocRepo.return_value
+            doc_repo.get = AsyncMock(return_value=None)
+
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                resp = await client.delete(f"{BASE_URL}/missing-id")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert resp.status_code == 404
+    assert "not found" in resp.json()["detail"].lower()
+    mock_ingestion.delete_document.assert_not_called()
