@@ -61,9 +61,12 @@ describe("SynthesisPage", () => {
       renderWithProviders(<SynthesisPage />);
       await waitFor(() => {
         expect(
-          screen.getByText(/there are 1 open contradiction/i),
+          screen.getByText(/there is 1 open/i),
         ).toBeInTheDocument();
       });
+      // The "contradiction" word is now a link to /contradictions
+      const link = screen.getByRole("link", { name: /contradiction/i });
+      expect(link).toHaveAttribute("href", "/contradictions");
       expect(screen.getByRole("button", { name: /generate world primer/i })).toBeDisabled();
     });
   });
