@@ -66,6 +66,22 @@ describe("useChat", () => {
     expect(result.current.isLoading).toBe(false);
   });
 
+  it("resets messages when the project id changes", async () => {
+    const { result, rerender } = renderHook(
+      ({ pid }: { pid: string }) => useChat(pid),
+      { wrapper: makeWrapper(), initialProps: { pid: "proj-1" } },
+    );
+    await act(async () => {
+      await result.current.send("Who is Alice?");
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.messages.length).toBe(2);
+
+    rerender({ pid: "proj-2" });
+    expect(result.current.messages).toEqual([]);
+    expect(result.current.isLoading).toBe(false);
+  });
+
   it("clears all messages", async () => {
     const { result } = renderHook(() => useChat("proj-1"), {
       wrapper: makeWrapper(),

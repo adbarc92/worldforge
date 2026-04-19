@@ -12,8 +12,18 @@ export interface ChatMessage {
 export function useChat(projectId: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [prevProjectId, setPrevProjectId] = useState(projectId);
   const { setActiveProject } = useActiveProject();
   const queryClient = useQueryClient();
+
+  // Reset per-conversation state when the active project changes. Each project
+  // has its own canon, so carrying messages across would mix them visually and
+  // attach stale context to the next send. Matches SynthesisPage's pattern.
+  if (projectId !== prevProjectId) {
+    setPrevProjectId(projectId);
+    setMessages([]);
+    setIsLoading(false);
+  }
 
   const send = useCallback(
     async (question: string) => {
