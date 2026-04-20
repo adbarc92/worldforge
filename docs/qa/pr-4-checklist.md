@@ -57,9 +57,9 @@ PID=$(curl -s -X POST http://localhost:8080/api/v1/projects \
   -H "Content-Type: application/json" -d '{"name":"Dup-Check"}' \
   | python -c "import sys,json;print(json.load(sys.stdin)['id'])")
 curl -s -X POST "http://localhost:8080/api/v1/projects/$PID/documents/upload" \
-  -F "file=@/tmp/qa-docs/doc-a.md" &
+  -F "file=@docs/qa/fixtures/contradicting-pair/doc-a.md" &
 curl -s -X POST "http://localhost:8080/api/v1/projects/$PID/documents/upload" \
-  -F "file=@/tmp/qa-docs/doc-b.md" &
+  -F "file=@docs/qa/fixtures/contradicting-pair/doc-b.md" &
 wait
 sleep 30
 curl -s "http://localhost:8080/api/v1/projects/$PID/contradictions?status=open" \
@@ -115,9 +115,9 @@ PID=$(curl -s -X POST http://localhost:8080/api/v1/projects \
   -H "Content-Type: application/json" \
   -d '{"name":"Aegis Station","description":"Mystery in deep space"}' \
   | python -c "import sys,json;print(json.load(sys.stdin)['id'])")
-TMPDIR="/c/Users/barclay/AppData/Local/Temp/demo-docs"
+SRC="docs/qa/fixtures/aegis-demo"
 for f in station.md crew.md signal.txt history.md tech_brief.pdf old_logs.md; do
   curl -s -X POST "http://localhost:8080/api/v1/projects/$PID/documents/upload" \
-    -F "file=@$TMPDIR/$f" > /dev/null
+    -F "file=@$SRC/$f" > /dev/null
 done
 ```

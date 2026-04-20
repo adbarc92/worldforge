@@ -1,0 +1,11 @@
+THE HALION ANOMALY — OBSERVATIONAL NOTES
+
+The anomaly was first recorded in 2401 by automated probes dropped into the upper atmosphere of Halion. The pulse emerges from a region approximately 40,000 kilometers below the cloud deck and propagates outward in a roughly spherical wavefront. Duration is consistently 3.7 seconds. Amplitude varies by a factor of ten between events. The period between events is 47 hours plus or minus four minutes.
+
+The pulse occupies a narrow band near 1420 MHz — the so-called hydrogen line — which has led Dr. Rho and others to argue for an intentional origin. Her 2410 paper proposes that the waveform exhibits non-random structure when sampled at 12-bit resolution, though this claim remains controversial. Dr. Fen's analysis, published six months later, found no statistically significant structure at any sampling resolution tested.
+
+The anomaly does not appear to degrade the station's systems directly, but transient EM effects have been observed during every pulse: elevator doors cycling unprompted, medical monitors briefly showing flatline, the central computing core dropping a handful of non-critical processes. These effects last only the duration of the pulse itself.
+
+No other celestial body in the Kepler-186 system emits comparable signals. Halion's three moons are silent. The star is quiet. Whatever produces the anomaly, if it is not the planet itself, originates from inside Halion.
+
+The Commonwealth Defense classification on the anomaly data was extended in 2411 for "further review." No timeline has been given for its release.
