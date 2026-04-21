@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { OutlineEditor } from "../components/synthesis/OutlineEditor";
 import { SynthesisViewer } from "../components/synthesis/SynthesisViewer";
@@ -93,7 +94,14 @@ export function SynthesisPage() {
         return (
           <div className="space-y-4">
             <p className="text-sm text-red-500">
-              There are {openCount} open contradiction(s). Resolve or dismiss them before generating a synthesis.
+              There {openCount === 1 ? "is" : "are"} {openCount} open{" "}
+              <Link
+                to="/contradictions"
+                className="underline underline-offset-2 hover:text-red-400"
+              >
+                contradiction{openCount === 1 ? "" : "s"}
+              </Link>
+              . Resolve or dismiss {openCount === 1 ? "it" : "them"} before generating a synthesis.
             </p>
             <div className="flex gap-2">
               <Button disabled>Generate World Primer</Button>

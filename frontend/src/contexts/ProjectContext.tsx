@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Project } from "@/lib/api";
+import { useProjects } from "@/hooks/useProjects";
 
 interface ProjectContextType {
   activeProject: Project | null;
@@ -22,6 +23,19 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }
     return null;
   });
+
+  const { data: projects } = useProjects();
+
+  // Reconcile localStorage hydration against the server's project list.
+  // If the stored project no longer exists (e.g. deleted in another session),
+  // clear it so chat/documents/etc. don't fire API calls against a 404.
+  useEffect(() => {
+    if (!projects || !activeProject) return;
+    if (!projects.some((p) => p.id === activeProject.id)) {
+      setActiveProjectState(null);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [projects, activeProject]);
 
   const setActiveProject = (project: Project | null) => {
     setActiveProjectState(project);

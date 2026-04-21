@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import select, func, or_, and_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.contradiction import Contradiction
@@ -24,7 +25,7 @@ class ContradictionRepository:
         chunk_a_text: str,
         chunk_b_text: str,
         explanation: str,
-    ) -> Contradiction:
+    ) -> Contradiction | None:
         contradiction = Contradiction(
             project_id=project_id,
             chunk_a_id=chunk_a_id,
@@ -38,7 +39,13 @@ class ContradictionRepository:
             explanation=explanation,
         )
         self.session.add(contradiction)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except IntegrityError:
+            # Concurrent scan won the race; the unique pair index rejected our insert.
+            # Roll back and signal "no new record" rather than raising.
+            await self.session.rollback()
+            return None
         await self.session.refresh(contradiction)
         return contradiction
 

@@ -102,7 +102,7 @@ class ContradictionService:
                     )
 
                     if classification["is_contradiction"]:
-                        await self.repo.create(
+                        created = await self.repo.create(
                             project_id=project_id,
                             chunk_a_id=chunk["id"],
                             chunk_b_id=match["id"],
@@ -114,7 +114,8 @@ class ContradictionService:
                             chunk_b_text=match["payload"]["text"],
                             explanation=classification["explanation"],
                         )
-                        found += 1
+                        if created is not None:
+                            found += 1
             except Exception:
                 logger.exception("Failed to process chunk %s, skipping", chunk["id"])
                 continue

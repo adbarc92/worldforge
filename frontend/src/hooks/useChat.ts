@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
-import { api } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
+import { api, ApiError } from "@/lib/api";
+import { useActiveProject } from "@/contexts/ProjectContext";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -10,6 +12,18 @@ export interface ChatMessage {
 export function useChat(projectId: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [prevProjectId, setPrevProjectId] = useState(projectId);
+  const { setActiveProject } = useActiveProject();
+  const queryClient = useQueryClient();
+
+  // Reset per-conversation state when the active project changes. Each project
+  // has its own canon, so carrying messages across would mix them visually and
+  // attach stale context to the next send. Matches SynthesisPage's pattern.
+  if (projectId !== prevProjectId) {
+    setPrevProjectId(projectId);
+    setMessages([]);
+    setIsLoading(false);
+  }
 
   const send = useCallback(
     async (question: string) => {
@@ -26,6 +40,13 @@ export function useChat(projectId: string) {
         };
         setMessages((prev) => [...prev, assistantMsg]);
       } catch (err) {
+        // If the project was deleted out from under us, self-heal: clear the
+        // stale activeProject and force the projects list to refetch so the
+        // ChatPage falls back to "Select a project" on next render.
+        if (err instanceof ApiError && err.status === 404) {
+          setActiveProject(null);
+          queryClient.invalidateQueries({ queryKey: ["projects"] });
+        }
         const errorMsg: ChatMessage = {
           role: "assistant",
           content: `Error: ${err instanceof Error ? err.message : "Something went wrong"}`,
@@ -35,7 +56,7 @@ export function useChat(projectId: string) {
         setIsLoading(false);
       }
     },
-    [projectId]
+    [projectId, setActiveProject, queryClient]
   );
 
   const clear = useCallback(() => setMessages([]), []);
