@@ -117,3 +117,7 @@ No authentication — this is a single-user personal tool. Auth is deferred to r
 ## Migrations
 
 Alembic async migrations live in `backend/alembic/`. Run with `cd backend && uv run alembic upgrade head`.
+
+## Launch Status
+
+Pre-launch work (demo recording, launch posts, Reddit ramp) is tracked in [`docs/LAUNCH_TODOS.md`](docs/LAUNCH_TODOS.md). Check there first for what's outstanding before v1.0.0 ships.
