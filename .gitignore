@@ -120,3 +120,6 @@ test-data/
 
 # Internal launch material
 docs/LAUNCH_TWEETS.md
+
+# Local DB dumps
+db-backups/

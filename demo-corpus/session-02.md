@@ -17,11 +17,11 @@ Halden clocked at least two figures watching the crossing from the opposite bank
 
 ## The Village of Harren-on-Silverflow
 
-Stopped overnight at the village inn on the 7th. Sister Maren visited the shrine of Saint Perell for the evening rite and spent an hour with the shrine-keeper, an old woman named Oelda who remembered the duke's last visit six weeks earlier.
+Stopped overnight at the village inn on the 7th. Sister Maren visited the shrine of Saint Perell for the evening rite and spent an hour with the shrine-keeper, an old woman named Oelda.
 
-Oelda said the duke had seemed tired but in good humor, had asked after the roof repairs, and had promised to return for the Harvest-Tide festival. "He was a kind man," she said. "He always came back."
+Oelda remembered the duke's patronage from years past — the roof repairs he had funded, the bushel he sent each autumn. "He was a kind man," she said. "He always remembered us."
 
-Her description of a man alive, well, and planning to attend Harvest-Tide in Hollowford is now several weeks old but is the last known account of the duke's condition from an outside witness.
+The party left her a small offering for the shrine in the morning.
 
 ## The Bad Night on the River
 
@@ -33,7 +33,7 @@ Nothing came of it that night, but the party agreed to take the remaining road i
 
 The party reached the southern gate of Hollowford on the evening of the 12th of Harvest-Tide. The city was already decorated for the festival. Lodging was arranged through a contact of Sister Maren's at the Saint Perell hostel.
 
-Audience with Duke Aldric requested for the 14th.
+An audience at the ducal seat was requested for the 14th.
 
 ## Loose Threads
 

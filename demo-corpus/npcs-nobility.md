@@ -13,8 +13,8 @@ Thirties, academic background, moved up fast under Aelwin. Carries the royal sea
 
 ## House Vareth of Westvale
 
-### Duke Aldric Vareth (deceased)
-Late fifties when he died. Tall, narrow build, a falconer's calluses on his left hand. Kept a fixed annual schedule: summers at Greystone, autumn at Hollowford for the festival, winters at the ducal seat of Vareth-Hold. Twice married; widowed once. Remembered for his administrative caution and his patronage of the mendicants at Saint Perell. Appointments for his final audiences were kept by Scribe-Warden Tallow and should be retrievable.
+### Duke Aldric Vareth
+Late fifties. Tall, narrow build, a falconer's calluses on his left hand. Kept a fixed annual schedule: summers at Greystone, autumn at Hollowford for the festival, winters at the ducal seat of Vareth-Hold. Twice married; widowed once. Known for administrative caution and his patronage of the mendicants at Saint Perell. Appointments logged by Scribe-Warden Tallow.
 
 ### Lady Elayne Vareth
 Twenty-nine. Aldric's elder daughter by his second marriage. Educated at the royal archives, currently holds no court office. Sharp, formal in public, dry in private. Has been at Greystone for the past two seasons organizing her father's papers. Confirmation as Duchess of Westvale is pending.

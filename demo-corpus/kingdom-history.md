@@ -4,7 +4,7 @@
 
 Eastmarch was consolidated under King Othred the Steady in 612, following two decades of skirmishes along the Silverflow. The kingdom's early charter — preserved in the Hollowford archives — established the five great duchies: Westvale, Northreach, Fenmarch, Stormgate, and the Duchy of the Isles.
 
-House Vareth was granted Westvale in 618 for its cavalry's role at the Battle of Silverflow Crossing. The grant is hereditary by primogeniture, with the title "Duke of Westvale" passing through the male line unless the council of stewards petitions otherwise.
+House Vareth was granted Westvale in 618 for its cavalry's role at the Battle of Silverflow Crossing. The grant is hereditary, with final confirmation of each new duke requiring the assent of the Council of Stewards.
 
 ## The Long Peace (640–790)
 
