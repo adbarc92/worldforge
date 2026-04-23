@@ -16,11 +16,11 @@ Everything needed before hitting record. Full storyboard: `docs/DEMO_SCRIPT.md`.
 
 ### Dry-run the corpus end-to-end
 
-- [ ] `docker compose up -d --build` brings the full stack up cleanly.
-- [ ] `uv run python scripts/bulk_upload.py ./demo-corpus --project "Homebrew Campaign"` loads all 6 files without errors.
-- [ ] Uploading `demo-corpus-incoming/session-03.md` via the Documents page surfaces a contradiction card citing both `session-03.md` and `kingdom-history.md`.
-- [ ] Querying *"What happened to Duke Aldric?"* returns an answer with inline citations to both conflicting documents.
-- [ ] UI labels/flows in Beats 1–5 match the DEMO_SCRIPT. Patch the script if anything has drifted (especially the Contradictions page and drag-drop zone).
+- [x] `docker compose up -d --build` brings the full stack up cleanly. (Note: a stale postgres volume from a prior checkout can leave alembic at a missing revision and cause the api container to exit; if so, dump and `docker compose down -v` to wipe.)
+- [x] `cd backend && uv run python ../scripts/bulk_upload.py ../demo-corpus --project "Homebrew Campaign"` loads all 6 files. (Run from `backend/` so httpx is on the venv path.)
+- [x] Uploading `demo-corpus-incoming/session-03.md` surfaces the hero contradiction at the top of the Contradictions list — `session-03.md` ("Duke Aldric was murdered in his chambers during the harvest festival") vs `kingdom-history.md` ("Duke Aldric succumbed to fever in the spring of 847, six months before the harvest festival"). Three contradictions total; the secondary `kingdom-history` ↔ `session-01` flag is fine atmosphere.
+- [x] Querying *"What happened to Duke Aldric?"* returns a clean RAG answer that explicitly contrasts the official fever account with the murder, citing both documents.
+- [ ] **UI flow check (visual, manual):** open the app at http://localhost:8080 and click through Beats 1–5 to confirm labels match DEMO_SCRIPT — Documents page drag-drop zone, Contradictions page card layout, Chat page citation rendering. Patch the script if any text/UI has drifted.
 
 ### Recording tools
 
