@@ -18,7 +18,7 @@ Passage B:
 
 Respond with JSON only: {{"is_contradiction": bool, "explanation": "string"}}"""
 
-SIMILAR_CHUNKS_TOP_K = 5
+SIMILAR_CHUNKS_TOP_K = 10
 
 
 class ContradictionService:
