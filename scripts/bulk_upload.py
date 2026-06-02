@@ -47,8 +47,8 @@ def upload_file(client: httpx.Client, project_id: str, file_path: Path) -> dict:
 def main():
     parser = argparse.ArgumentParser(description="Bulk upload documents to WorldForge")
     parser.add_argument("directory", type=Path, help="Directory containing documents")
-    parser.add_argument("--project-name", required=True, help="Name for the project")
-    parser.add_argument("--project-description", default=None, help="Project description")
+    parser.add_argument("--project", dest="project_name", required=True, help="Name for the project")
+    parser.add_argument("--description", dest="project_description", default=None, help="Project description")
     parser.add_argument("--project-id", default=None, help="Use existing project ID instead of creating one")
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help=f"API base URL (default: {DEFAULT_BASE_URL})")
     parser.add_argument("--limit", type=int, default=0, help="Upload only first N files (0 = all)")

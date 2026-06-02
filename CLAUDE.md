@@ -117,3 +117,14 @@ No authentication — this is a single-user personal tool. Auth is deferred to r
 ## Migrations
 
 Alembic async migrations live in `backend/alembic/`. Run with `cd backend && uv run alembic upgrade head`.
+
+## Launch Status
+
+Pre-launch work (demo recording, launch posts, Reddit ramp) is tracked in [`docs/LAUNCH_TODOS.md`](docs/LAUNCH_TODOS.md). Check there first for what's outstanding before v1.0.0 ships.
+
+### Demo context (load on request)
+
+If the user asks about recording the demo, running the demo stack, the corpus design, dry-run debugging, or anything tied to the launch video, read these first — they are intentionally kept out of the default context:
+
+- [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) — storyboard for the 45s primary cut
+- [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md) — operational notes, expected Beat 4/5 results, known gotchas, corpus invariants
