@@ -113,7 +113,7 @@ openwebui_data/
 prometheus_data/
 grafana_data/
 
-test-docs*
+test-data/
 
 # Local Claude Code settings
 .claude/
