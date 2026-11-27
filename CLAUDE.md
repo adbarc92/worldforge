@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+Read [docs/ROUTER.md](docs/ROUTER.md) first; it routes to every doc.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
